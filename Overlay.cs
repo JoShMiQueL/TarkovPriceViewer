@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -659,10 +660,12 @@ namespace TarkovPriceViewer
 
             try
             {
-                using (TPVWebClient wc = new TPVWebClient())
+                using (var httpClient = new HttpClient())
                 {
+                    httpClient.Timeout = TimeSpan.FromSeconds(5);
                     HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                    doc.LoadHtml(wc.DownloadString(item.wikiLink));
+                    string html = httpClient.GetStringAsync(item.wikiLink).Result;
+                    doc.LoadHtml(html);
                     HtmlAgilityPack.HtmlNode node = doc?.DocumentNode.SelectSingleNode("//div[@class='mw-parser-output']");
                     var subnode = node?.SelectSingleNode("//p[3]");
                     if (subnode != null)

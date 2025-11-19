@@ -252,7 +252,7 @@ namespace TarkovPriceViewer
                             }
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         //MessageBox.Show("--> Error trying to update TarkovTracker API: " + ex.Message);
                         Thread.Sleep(5000);
@@ -434,11 +434,13 @@ namespace TarkovPriceViewer
             {
                 try
                 {
-                    using (TPVWebClient wc = new TPVWebClient())
+                    using (var httpClient = new HttpClient())
                     {
+                        httpClient.Timeout = TimeSpan.FromSeconds(5);
                         HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
                         Debug.WriteLine(Program.wiki + "Ballistics");
-                        doc.LoadHtml(wc.DownloadString(Program.wiki + "Ballistics"));
+                        string html = httpClient.GetStringAsync(Program.wiki + "Ballistics").Result;
+                        doc.LoadHtml(html);
                         HtmlAgilityPack.HtmlNode node_tm = doc.DocumentNode.SelectSingleNode("//table[4]"); //table[@id='trkballtable']
                         HtmlAgilityPack.HtmlNodeCollection nodes = null;
                         HtmlAgilityPack.HtmlNodeCollection sub_nodes = null;

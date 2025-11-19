@@ -8,6 +8,7 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -62,6 +63,8 @@ namespace TarkovPriceViewer
         private static int repeatCount = 0;
         public static System.Timers.Timer timer = new System.Timers.Timer(250);
 
+
+#pragma warning disable CS0649
         private struct WINDOWPLACEMENT
         {
             public int length;
@@ -71,6 +74,8 @@ namespace TarkovPriceViewer
             public System.Drawing.Point ptMaxPosition;
             public System.Drawing.Rectangle rcNormalPosition;
         }
+#pragma warning restore CS0649
+
 
         private enum ShowWindowCommands : int
         {
@@ -80,11 +85,15 @@ namespace TarkovPriceViewer
             Maximized = 3,
         }
 
+
+#pragma warning disable CS0649
         internal struct LASTINPUTINFO
         {
             public uint cbSize;
             public uint dwTime;
         }
+#pragma warning restore CS0649
+
 
         private static readonly int WH_KEYBOARD_LL = 13;
         private static readonly int WM_KEYUP = 0x101;
@@ -732,7 +741,6 @@ namespace TarkovPriceViewer
 
         private void FindItemAPI(Bitmap fullimage, bool isiteminfo, CancellationToken cts_one)
         {
-            int a = 1;
             Item item = new Item();
             using (Mat ScreenMat_original = BitmapConverter.ToMat(fullimage))
             using (Mat ScreenMat = ScreenMat_original.CvtColor(ColorConversionCodes.BGRA2BGR))
@@ -1030,13 +1038,14 @@ namespace TarkovPriceViewer
         {
             try
             {
-                using (TPVWebClient wc = new TPVWebClient())
+                using (var httpClient = new HttpClient())
                 {
+                    httpClient.Timeout = TimeSpan.FromSeconds(5);
                     string highgithub = "";
                     float highv = 0;
                     foreach (var github in Program.github)
                     {
-                        String check = wc.DownloadString(github + Program.checkupdate);
+                        String check = httpClient.GetStringAsync(github + Program.checkupdate).Result;
                         if (!check.Equals(""))
                         {
                             String sp = check.Split('\n')[0];
