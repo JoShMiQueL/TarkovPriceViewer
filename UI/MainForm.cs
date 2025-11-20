@@ -27,6 +27,7 @@ namespace TarkovPriceViewer.UI
         private readonly ITarkovDataService _tarkovDataService;
         private readonly IBallisticsService _ballisticsService;
         private readonly ITarkovTrackerService _tarkovTrackerService;
+        private readonly IOcrService _ocrService;
 
         [DllImport("user32.dll")]
         private static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, int nFlags);
@@ -145,12 +146,14 @@ namespace TarkovPriceViewer.UI
             ISettingsService settingsService,
             ITarkovDataService tarkovDataService,
             IBallisticsService ballisticsService,
-            ITarkovTrackerService tarkovTrackerService)
+            ITarkovTrackerService tarkovTrackerService,
+            IOcrService ocrService)
         {
             _settingsService = settingsService;
             _tarkovDataService = tarkovDataService;
             _ballisticsService = ballisticsService;
             _tarkovTrackerService = tarkovTrackerService;
+            _ocrService = ocrService;
 
             int style = GetWindowLong(this.Handle, GWL_EXSTYLE);
             SetWindowLong(this.Handle, GWL_EXSTYLE, style | WS_EX_LAYERED);
@@ -657,32 +660,47 @@ namespace TarkovPriceViewer.UI
 
         private void getPaddleModel()
         {
-            Task getModel = Task.Run(async () => {
+            // Si ya tenemos un modelo cargado, no volvemos a descargar.
+            if (languageModel != null)
+            {
+                return;
+            }
+
+            try
+            {
                 Debug.WriteLine("Download the paddle language model.");
                 RecognizationModel model;
-                if (_settingsService.Settings.Language == "ko")
+                var lang = _settingsService.Settings.Language;
+                if (lang == "ko")
                 {
-                    model = await LocalDictOnlineRecognizationModel.KoreanV4.DownloadAsync();
+                    model = LocalDictOnlineRecognizationModel.KoreanV4.DownloadAsync().GetAwaiter().GetResult();
                 }
-                else if (_settingsService.Settings.Language == "cn")
+                else if (lang == "cn")
                 {
-                    model = await LocalDictOnlineRecognizationModel.ChineseV4.DownloadAsync();
+                    model = LocalDictOnlineRecognizationModel.ChineseV4.DownloadAsync().GetAwaiter().GetResult();
                 }
-                else if (_settingsService.Settings.Language == "jp")
+                else if (lang == "jp")
                 {
-                    model = await LocalDictOnlineRecognizationModel.JapanV4.DownloadAsync();
+                    model = LocalDictOnlineRecognizationModel.JapanV4.DownloadAsync().GetAwaiter().GetResult();
                 }
                 else
                 {
-                    model = await LocalDictOnlineRecognizationModel.EnglishV4.DownloadAsync();
+                    model = LocalDictOnlineRecognizationModel.EnglishV4.DownloadAsync().GetAwaiter().GetResult();
                 }
 
                 lock (lockObject)
                 {
-                    Debug.WriteLine("language model setted.");
-                    languageModel = model;
+                    if (languageModel == null)
+                    {
+                        Debug.WriteLine("language model setted.");
+                        languageModel = model;
+                    }
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error downloading Paddle model: " + ex.Message);
+            }
         }
 
         private void EnsureRecognizer()
@@ -724,33 +742,20 @@ namespace TarkovPriceViewer.UI
         private String getPaddleOCR(Mat textmat)
         {
             GettingItemInfo = true;
-            String text = "";
             try
             {
-                EnsureRecognizer();
-                if (ocrRecognizer == null)
-                {
-                    GettingItemInfo = false;
-                    return text;
-                }
-
-                lock (ocrLock)
-                {
-                    var result = ocrRecognizer.Run(textmat);
-                    if (result.Score > 0.5f)
-                    {
-                        text = result.Text.Replace("\n", " ").Split(Program.splitcur)[0].Trim();
-                    }
-                    Debug.WriteLine(result.Score + " Paddle Text : " + result.Text);
-                }
+                var lang = _settingsService.Settings.Language;
+                _ocrService.EnsureInitialized(lang);
+                var text = _ocrService.RecognizeText(textmat, Program.splitcur) ?? string.Empty;
+                GettingItemInfo = false;
+                return text;
             }
             catch (Exception e)
             {
                 Debug.WriteLine("Paddle error: " + e.Message);
                 GettingItemInfo = false;
+                return string.Empty;
             }
-            GettingItemInfo = false;
-            return text;
         }
 
         private void FindItemAPI(Bitmap fullimage, bool isiteminfo, CancellationToken cts_one)
@@ -773,10 +778,20 @@ namespace TarkovPriceViewer.UI
                             using (Mat temp = ScreenMat.SubMat(rect2))
                             using (Mat temp2 = temp.Threshold(0, 255, ThresholdTypes.BinaryInv))
                             {
-                                String text = getPaddleOCR(temp);
-                                String text2 = getPaddleOCR(temp2);
+                                string text = getPaddleOCR(temp);
 
-                                if (!text.Equals("") || !text2.Equals("")) //If tooltip text found
+                                if (!string.IsNullOrEmpty(text))
+                                {
+                                    item = MatchItemNameAPI(text, string.Empty);
+                                    if (item != null && !string.IsNullOrEmpty(item.name))
+                                    {
+                                        break;
+                                    }
+                                }
+
+                                string text2 = getPaddleOCR(temp2);
+
+                                if (!string.IsNullOrEmpty(text2)) //If tooltip text found
                                 {
                                     item = MatchItemNameAPI(text, text2);
                                     break;

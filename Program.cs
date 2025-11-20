@@ -121,6 +121,7 @@ namespace TarkovPriceViewer
                     services.AddSingleton<IBallisticsService, BallisticsService>();
                     services.AddSingleton<ITarkovDataService, TarkovDataService>();
                     services.AddSingleton<ITarkovTrackerService, TarkovTrackerService>();
+                    services.AddSingleton<IOcrService, OcrService>();
                     services.AddSingleton<MainForm>();
                 });
         }
