@@ -113,6 +113,15 @@ namespace TarkovPriceViewer.Services
                 if (File.Exists(API_FILE_PATH))
                 {
                     string responseContent = File.ReadAllText(API_FILE_PATH);
+
+                    // Invalidate cache if it does not contain new schema fields
+                    if (!responseContent.Contains("foundInRaid") || !responseContent.Contains("\"itemRequirements\":[{\"id\":"))
+                    {
+                        Debug.WriteLine("\n--> TarkovAPI cache outdated (missing foundInRaid or itemRequirements.id), forcing update...");
+                        // Force a fresh update and return; caller will deserialize new data
+                        UpdateItemListAPI(force: true).GetAwaiter().GetResult();
+                        return;
+                    }
                     lock (_lockObject)
                     {
                         Data = JsonConvert.DeserializeObject<TarkovAPI.Data>(responseContent);
@@ -145,8 +154,223 @@ namespace TarkovPriceViewer.Services
 
         private string GetGraphQLQuery(string lang, string gameMode)
         {
-            // TODO: Make it more readable
-            return "{\r\n  items(" + $"lang:{lang}, gameMode:{gameMode}" + ") {\r\n    id\r\n    name\r\n    normalizedName\r\n    types\r\n    lastLowPrice\r\n    avg24hPrice\r\n    updated\r\n    fleaMarketFee\r\n    link\r\n    wikiLink\r\n    width\r\n    height\r\n    properties {\r\n      ... on ItemPropertiesArmor {\r\n        class\r\n      }\r\n      ... on ItemPropertiesArmorAttachment {\r\n        class\r\n      }\r\n      ... on ItemPropertiesChestRig {\r\n        class\r\n      }\r\n      ... on ItemPropertiesGlasses {\r\n        class\r\n      }\r\n      ... on ItemPropertiesHelmet {\r\n        class\r\n      }\r\n      ... on ItemPropertiesKey {\r\n        uses\r\n      }\r\n      ... on ItemPropertiesAmmo {\r\n        caliber\r\n        damage\r\n        projectileCount\r\n        penetrationPower\r\n        armorDamage\r\n        fragmentationChance\r\n        ammoType\r\n      }\r\n      ... on ItemPropertiesWeapon {\r\n        caliber\r\n        ergonomics\r\n        defaultRecoilVertical\r\n        defaultRecoilHorizontal\r\n        defaultWidth\r\n        defaultHeight\r\n        defaultAmmo {\r\n          name\r\n        }\r\n      }\r\n      ... on ItemPropertiesWeaponMod {\r\n        accuracyModifier\r\n      }\r\n    }\r\n    sellFor {\r\n      currency\r\n      priceRUB\r\n      vendor {\r\n        name\r\n        ... on TraderOffer {\r\n          minTraderLevel\r\n        }\r\n      }\r\n    }\r\n    buyFor {\r\n      currency\r\n      priceRUB\r\n      vendor {\r\n        name\r\n        ... on TraderOffer {\r\n          minTraderLevel\r\n        }\r\n      }\r\n    }\r\n    bartersUsing {\r\n      trader {\r\n        name\r\n        levels {\r\n          level\r\n        }\r\n      }\r\n      requiredItems {\r\n        item {\r\n          name\r\n        }\r\n        count\r\n        quantity\r\n      }\r\n      rewardItems {\r\n        item {\r\n          name\r\n        }\r\n        count\r\n        quantity\r\n      }\r\n    }\r\n    bartersFor {\r\n      trader {\r\n        name\r\n        levels {\r\n          level\r\n        }\r\n      }\r\n      requiredItems {\r\n        item {\r\n          name\r\n        }\r\n        count\r\n        quantity\r\n      }\r\n      rewardItems {\r\n        item {\r\n          name\r\n        }\r\n        count\r\n        quantity\r\n      }\r\n      taskUnlock {\r\n        name\r\n      }\r\n    }\r\n    craftsUsing {\r\n      station {\r\n        name\r\n        levels {\r\n          level\r\n        }\r\n      }\r\n      requiredItems {\r\n        item {\r\n          name\r\n        }\r\n        count\r\n        quantity\r\n      }\r\n      rewardItems {\r\n        item {\r\n          name\r\n        }\r\n        count\r\n        quantity\r\n      }\r\n    }\r\n    craftsFor {\r\n      station {\r\n        name\r\n        levels {\r\n          level\r\n        }\r\n      }\r\n      requiredItems {\r\n        item {\r\n          name\r\n        }\r\n        count\r\n        quantity\r\n      }\r\n      rewardItems {\r\n        item {\r\n          name\r\n        }\r\n        count\r\n        quantity\r\n      }\r\n    }\r\n    usedInTasks {\r\n      id\r\n      name\r\n      map {\r\n        name\r\n      }\r\n      minPlayerLevel\r\n    }\r\n  }\r\n  hideoutStations {\r\n    name\r\n    levels {\r\n      level\r\n      id\r\n      itemRequirements {\r\n        item {\r\n          id\r\n        }\r\n        count\r\n      }\r\n    }\r\n  }\r\n}";
+            return $@"{{
+  items(lang:{lang}, gameMode:{gameMode}) {{
+    id
+    name
+    normalizedName
+    types
+    lastLowPrice
+    avg24hPrice
+    updated
+    fleaMarketFee
+    link
+    wikiLink
+    width
+    height
+    properties {{
+      ... on ItemPropertiesArmor {{
+        class
+      }}
+      ... on ItemPropertiesArmorAttachment {{
+        class
+      }}
+      ... on ItemPropertiesChestRig {{
+        class
+      }}
+      ... on ItemPropertiesGlasses {{
+        class
+      }}
+      ... on ItemPropertiesHelmet {{
+        class
+      }}
+      ... on ItemPropertiesKey {{
+        uses
+      }}
+      ... on ItemPropertiesAmmo {{
+        caliber
+        damage
+        projectileCount
+        penetrationPower
+        armorDamage
+        fragmentationChance
+        ammoType
+      }}
+      ... on ItemPropertiesWeapon {{
+        caliber
+        ergonomics
+        defaultRecoilVertical
+        defaultRecoilHorizontal
+        defaultWidth
+        defaultHeight
+        defaultAmmo {{
+          name
+        }}
+      }}
+      ... on ItemPropertiesWeaponMod {{
+        accuracyModifier
+      }}
+    }}
+    sellFor {{
+      currency
+      priceRUB
+      vendor {{
+        name
+        ... on TraderOffer {{
+          minTraderLevel
+        }}
+      }}
+    }}
+    buyFor {{
+      currency
+      priceRUB
+      vendor {{
+        name
+        ... on TraderOffer {{
+          minTraderLevel
+        }}
+      }}
+    }}
+    bartersUsing {{
+      trader {{
+        name
+        levels {{
+          level
+        }}
+      }}
+      requiredItems {{
+        item {{
+          name
+        }}
+        count
+        quantity
+      }}
+      rewardItems {{
+        item {{
+          name
+        }}
+        count
+        quantity
+      }}
+    }}
+    craftsFor {{
+      station {{
+        name
+        levels {{
+          level
+        }}
+      }}
+      requiredItems {{
+        item {{
+          name
+        }}
+        count
+        quantity
+      }}
+      rewardItems {{
+        item {{
+          name
+        }}
+        count
+        quantity
+      }}
+    }}
+    craftsUsing {{
+      station {{
+        name
+        levels {{
+          level
+        }}
+      }}
+      requiredItems {{
+        item {{
+          name
+        }}
+        count
+        quantity
+      }}
+      rewardItems {{
+        item {{
+          name
+        }}
+        count
+        quantity
+      }}
+    }}
+    bartersFor {{
+      trader {{
+        name
+        levels {{
+          level
+        }}
+      }}
+      requiredItems {{
+        item {{
+          name
+        }}
+        count
+        quantity
+      }}
+      rewardItems {{
+        item {{
+          name
+        }}
+        count
+        quantity
+      }}
+      taskUnlock {{
+        name
+      }}
+    }}
+    usedInTasks {{
+      id
+      name
+      trader {{
+        name
+      }}
+      map {{
+        name
+      }}
+      minPlayerLevel
+      traderLevelRequirements {{
+        level
+      }}
+      objectives {{
+        id
+        description
+        maps {{
+          name
+        }}
+        type
+        ... on TaskObjectiveItem {{
+          id
+          count
+          type
+          foundInRaid
+          items {{
+            id
+            name
+          }}
+        }}
+      }}
+    }}
+  }}
+  hideoutStations {{
+    name
+    levels {{
+      id
+      level
+      itemRequirements {{
+        id
+        item {{
+          id
+          name
+        }}
+        count
+      }}
+    }}
+  }}
+}}";
         }
     }
 }

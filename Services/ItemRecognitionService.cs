@@ -100,7 +100,7 @@ namespace TarkovPriceViewer.Services
             {
                 for (int i = 1; i < m; i++)
                 {
-                    if (s[i - 1] == t[j - 1])
+                    if (s[i] == t[j])
                     {
                         d[i, j] = d[i - 1, j - 1];
                     }
@@ -110,7 +110,7 @@ namespace TarkovPriceViewer.Services
                     }
                 }
             }
-            return d[m, n];
+            return d[m - 1, n - 1];
         }
     }
 }

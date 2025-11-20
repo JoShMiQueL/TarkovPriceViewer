@@ -38,8 +38,8 @@ namespace TarkovPriceViewer.Services
 
             if (settings.UseTarkovTrackerApi && !string.Equals(apiKey, "APIKey") && !string.IsNullOrWhiteSpace(apiKey))
             {
-                // If Outdated by 1 minute
-                if (force || ((DateTime.Now - LastUpdated).TotalMinutes >= 1))
+                // If Outdated by 10 seconds
+                if (force || ((DateTime.Now - LastUpdated).TotalSeconds >= 10))
                 {
                     try
                     {

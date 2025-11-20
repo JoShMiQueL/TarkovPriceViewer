@@ -532,6 +532,8 @@ namespace TarkovPriceViewer.UI
             else
                 overlay_info.ShowLoadingInfo(point, cts_info.Token);
 
+            // Ensure TarkovTracker progress is up-to-date when showing item info
+            Task.Factory.StartNew(async () => await _tarkovTrackerService.UpdateTarkovTrackerAPI(force: true));
             Task task = Task.Factory.StartNew(() => FindItemTask(true, cts_info.Token));
         }
 

@@ -348,71 +348,148 @@ namespace TarkovPriceViewer.UI
                             if (_settingsService?.Settings.Needs == true && item.usedInTasks.Count > 0 && _settingsService.Settings.UseTarkovTrackerApi && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
                             {
                                 string tasks = "";
+                                int grandTotal = 0;
                                 var list = item.usedInTasks.OrderBy(p => p.minPlayerLevel);
                                 foreach (var task in list)
                                 {
                                     var trackerData = _tarkovTrackerService?.TrackerData;
-                                    if (trackerData == null || trackerData.data == null || trackerData.data.tasksProgress == null)
+                                    if (trackerData == null || trackerData.data == null)
                                         continue;
 
-                                    if (!trackerData.data.tasksProgress.Any(e => e.id.Equals(task.id)))
-                                    {
-                                        string task1 = "";
+                                    // Skip completed tasks entirely
+                                    if (trackerData.data.tasksProgress != null && trackerData.data.tasksProgress.Any(e => e.id.Equals(task.id)))
+                                        continue;
 
-                                        if (task.minPlayerLevel != null)
-                                            task1 += "[" + task.minPlayerLevel + "] ";
-                                        if (task.name != null)
-                                            task1 += task.name;
-                                        if (task.map != null)
-                                            task1 += " [" + task.map.name + "]";
+                                    string task1 = "";
+                                    if (task.minPlayerLevel != null)
+                                        task1 += "[" + task.minPlayerLevel + "] ";
+                                    task1 += task.name;
+                                    if (task.map != null)
+                                        task1 += " [" + task.map.name + "]";
+
+                                    int totalCount = 0;
+                                    if (task.objectives != null)
+                                    {
+                                        foreach (var obj in task.objectives)
+                                        {
+                                            if (obj.type == "giveItem" && obj.foundInRaid == true && obj.items != null && obj.items.Any(i => i.id == item.id))
+                                            {
+                                                int needed = obj.count ?? 0;
+                                                if (trackerData.data.taskObjectivesProgress != null && obj.id != null)
+                                                {
+                                                    var progress = trackerData.data.taskObjectivesProgress.FirstOrDefault(p => p.id == obj.id);
+                                                    if (progress != null)
+                                                    {
+                                                        if (progress.complete == true)
+                                                            needed = 0;
+                                                        else if (progress.count != null)
+                                                            needed -= progress.count.Value;
+                                                    }
+                                                }
+                                                if (needed < 0) needed = 0;
+                                                totalCount += needed;
+                                            }
+                                        }
+                                    }
+
+                                    if (totalCount > 0)
+                                    {
+                                        task1 += " (x" + totalCount + ")";
                                         task1 += "\n";
 
                                         if (!tasks.Contains(task1))
+                                        {
                                             tasks += task1;
+                                            grandTotal += totalCount;
+                                        }
                                     }
                                 }
                                 if (tasks != "")
                                 {
                                     sb = RemoveTrailingLineBreaks(sb);
-                                    sb.Append(String.Format("\n\nUsed in Task:\n{0}", tasks));
+                                    if (grandTotal > 0)
+                                        sb.Append(String.Format("\n\nUsed in Task (Total: {0}):\n{1}", grandTotal, tasks));
+                                    else
+                                        sb.Append(String.Format("\n\nUsed in Task:\n{0}", tasks));
                                 }
                             }
                             else if (_settingsService?.Settings.Needs == true && item.usedInTasks.Count > 0 && !_settingsService.Settings.UseTarkovTrackerApi && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
                             {
                                 string tasks = "";
+                                int grandTotal = 0;
                                 var list = item.usedInTasks.OrderBy(p => p.minPlayerLevel);
                                 foreach (var task in list)
                                 {
+                                    string task1 = "";
                                     if (task.minPlayerLevel != null)
-                                        tasks += "[" + task.minPlayerLevel + "] ";
-                                    if (task.name != null)
-                                        tasks += task.name;
+                                        task1 += "[" + task.minPlayerLevel + "] ";
+                                    task1 += task.name;
                                     if (task.map != null)
-                                        tasks += " [" + task.map.name + "]";
-                                    tasks += "\n";
+                                        task1 += " [" + task.map.name + "]";
+
+                                    int totalCount = 0;
+                                    if (task.objectives != null)
+                                    {
+                                        foreach (var obj in task.objectives)
+                                        {
+                                            if (obj.type == "giveItem" && obj.foundInRaid == true && obj.items != null && obj.items.Any(i => i.id == item.id))
+                                            {
+                                                if (obj.count != null) totalCount += obj.count.Value;
+                                            }
+                                        }
+                                    }
+                                    if (totalCount > 0)
+                                    {
+                                        grandTotal += totalCount;
+                                        task1 += " (x" + totalCount + ")";
+                                        task1 += "\n";
+                                        tasks += task1;
+                                    }
                                 }
                                 sb = RemoveTrailingLineBreaks(sb);
-                                sb.Append(String.Format("\n\nUsed in Task:\n{0}", tasks));
+                                if (grandTotal > 0)
+                                    sb.Append(String.Format("\n\nUsed in Task (Total: {0}):\n{1}", grandTotal, tasks));
+                                else
+                                    sb.Append(String.Format("\n\nUsed in Task:\n{0}", tasks));
                             }
 
                             //Hideout Upgrades
                             if (!string.IsNullOrWhiteSpace(_settingsService?.Settings.TarkovTrackerApiKey) && _settingsService.Settings.UseTarkovTrackerApi && _settingsService.Settings.ShowHideoutUpgrades)
                             {
-                                var HideoutStations = _tarkovDataService?.Data?.hideoutStations;
+                                var hideoutStations = _tarkovDataService?.Data?.hideoutStations;
+                                var trackerData = _tarkovTrackerService?.TrackerData;
 
-                                if (item.name != "Roubles")
+                                if (item.name != "Roubles" && hideoutStations != null && trackerData != null && trackerData.data != null)
                                 {
                                     var upgradesList = new List<hideoutUpgrades>();
                                     string upgrades = "";
-                                    foreach (var station in HideoutStations)
+                                    int grandTotal = 0;
+                                    foreach (var station in hideoutStations)
                                     {
                                         foreach (var stationLevel in station.levels)
                                         {
                                             foreach (var itemReq in stationLevel.itemRequirements)
                                             {
-                                                if (item.id == itemReq.item.id && !Program.tarkovTrackerAPI.data.hideoutModulesProgress.Any(e => e.id.Equals(stationLevel.id)))
+                                                if (item.id == itemReq.item.id && trackerData.data.hideoutModulesProgress != null && !trackerData.data.hideoutModulesProgress.Any(e => e.id.Equals(stationLevel.id)))
                                                 {
-                                                    upgradesList.Add(new hideoutUpgrades() { Name = station.name, Level = stationLevel.level });
+                                                    int count = itemReq.count ?? 0;
+                                                    if (trackerData.data.hideoutPartsProgress != null && itemReq.id != null)
+                                                    {
+                                                        var progress = trackerData.data.hideoutPartsProgress.FirstOrDefault(p => p.id == itemReq.id);
+                                                        if (progress != null)
+                                                        {
+                                                            if (progress.complete == true)
+                                                                count = 0;
+                                                            else if (progress.count != null)
+                                                                count -= progress.count.Value;
+                                                        }
+                                                    }
+                                                    if (count < 0) count = 0;
+                                                    if (count > 0)
+                                                    {
+                                                        upgradesList.Add(new hideoutUpgrades() { Name = station.name, Level = stationLevel.level, Count = count });
+                                                        grandTotal += count;
+                                                    }
                                                 }
                                             }
                                         }
@@ -422,22 +499,25 @@ namespace TarkovPriceViewer.UI
                                         var sortedUpgradesList = new List<hideoutUpgrades>(upgradesList.OrderBy(p => p.Level));
 
                                         foreach (var upgrade in sortedUpgradesList)
-                                            upgrades += "[Level " + upgrade.Level + "] " + upgrade.Name + "\n";
+                                        {
+                                            upgrades += "[Level " + upgrade.Level + "] " + upgrade.Name + " (x" + upgrade.Count + ")\n";
+                                        }
 
                                         sb = RemoveTrailingLineBreaks(sb);
-                                        sb.Append(String.Format("\n\nNeeded for Hideout:\n{0}", upgrades));
+                                        sb.Append(String.Format("\n\nNeeded for Hideout (Total: {0}):\n{1}", grandTotal, upgrades));
                                     }
                                 }
                             }
                             else if (_settingsService?.Settings.ShowHideoutUpgrades == true)
                             {
-                                var HideoutStations = _tarkovDataService?.Data?.hideoutStations;
+                                var hideoutStations = _tarkovDataService?.Data?.hideoutStations;
 
-                                if (item.name != "Roubles")
+                                if (item.name != "Roubles" && hideoutStations != null)
                                 {
                                     var upgradesList = new List<hideoutUpgrades>();
                                     string upgrades = "";
-                                    foreach (var station in HideoutStations)
+                                    int grandTotal = 0;
+                                    foreach (var station in hideoutStations)
                                     {
                                         foreach (var stationLevel in station.levels)
                                         {
@@ -445,7 +525,9 @@ namespace TarkovPriceViewer.UI
                                             {
                                                 if (item.id == itemReq.item.id)
                                                 {
-                                                    upgradesList.Add(new hideoutUpgrades() { Name = station.name, Level = stationLevel.level });
+                                                    int count = itemReq.count ?? 0;
+                                                    upgradesList.Add(new hideoutUpgrades() { Name = station.name, Level = stationLevel.level, Count = count });
+                                                    grandTotal += count;
                                                 }
                                             }
                                         }
@@ -456,11 +538,11 @@ namespace TarkovPriceViewer.UI
 
                                         foreach (var upgrade in sortedUpgradesList)
                                         {
-                                            upgrades += "[Level " + upgrade.Level + "] " + upgrade.Name + "\n";
+                                            upgrades += "[Level " + upgrade.Level + "] " + upgrade.Name + " (x" + upgrade.Count + ")\n";
                                         }
 
                                         sb = RemoveTrailingLineBreaks(sb);
-                                        sb.Append(String.Format("\n\nNeeded for Hideout:\n{0}", upgrades));
+                                        sb.Append(String.Format("\n\nNeeded for Hideout (Total: {0}):\n{1}", grandTotal, upgrades));
                                     }
                                 }
                             }
@@ -948,7 +1030,7 @@ namespace TarkovPriceViewer.UI
                 }
             }
 
-            string[] darkOrange = { "Barters:", "Crafts:", "Use Location:", "]", "[", "Used in Task:", "Needed for Hideout:", "+", "-->" };
+            string[] darkOrange = { "Barters:", "Crafts:", "Use Location:", "]", "[", "Used in Task", "Needed for Hideout", "+", "-->" };
             foreach (var text in darkOrange)
             {
                 mc = new Regex(Regex.Escape(text)).Matches(iteminfo_text.Text);
@@ -1219,5 +1301,6 @@ namespace TarkovPriceViewer.UI
     {
         public string Name { get; set; }
         public int? Level { get; set; }
+        public int Count { get; set; }
     }
 }
