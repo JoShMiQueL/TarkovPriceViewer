@@ -28,6 +28,7 @@ namespace TarkovPriceViewer.UI
         private readonly IBallisticsService _ballisticsService;
         private readonly ITarkovTrackerService _tarkovTrackerService;
         private readonly IOcrService _ocrService;
+        private readonly IItemRecognitionService _itemRecognitionService;
 
         [DllImport("user32.dll")]
         private static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, int nFlags);
@@ -147,13 +148,15 @@ namespace TarkovPriceViewer.UI
             ITarkovDataService tarkovDataService,
             IBallisticsService ballisticsService,
             ITarkovTrackerService tarkovTrackerService,
-            IOcrService ocrService)
+            IOcrService ocrService,
+            IItemRecognitionService itemRecognitionService)
         {
             _settingsService = settingsService;
             _tarkovDataService = tarkovDataService;
             _ballisticsService = ballisticsService;
             _tarkovTrackerService = tarkovTrackerService;
             _ocrService = ocrService;
+            _itemRecognitionService = itemRecognitionService;
 
             int style = GetWindowLong(this.Handle, GWL_EXSTYLE);
             SetWindowLong(this.Handle, GWL_EXSTYLE, style | WS_EX_LAYERED);
@@ -660,7 +663,7 @@ namespace TarkovPriceViewer.UI
 
         private void getPaddleModel()
         {
-            // Si ya tenemos un modelo cargado, no volvemos a descargar.
+            // If we already have a model loaded, we do not download it again.
             if (languageModel != null)
             {
                 return;
@@ -761,6 +764,7 @@ namespace TarkovPriceViewer.UI
         private void FindItemAPI(Bitmap fullimage, bool isiteminfo, CancellationToken cts_one)
         {
             Item item = new Item();
+            var data = _tarkovDataService.Data;
             using (Mat ScreenMat_original = BitmapConverter.ToMat(fullimage))
             using (Mat ScreenMat = ScreenMat_original.CvtColor(ColorConversionCodes.BGRA2BGR))
             using (Mat rac_img = ScreenMat.InRange(linecolor, linecolor))
@@ -782,7 +786,7 @@ namespace TarkovPriceViewer.UI
 
                                 if (!string.IsNullOrEmpty(text))
                                 {
-                                    item = MatchItemNameAPI(text, string.Empty);
+                                    item = _itemRecognitionService.MatchItemName(text, string.Empty, data);
                                     if (item != null && !string.IsNullOrEmpty(item.name))
                                     {
                                         break;
@@ -793,7 +797,7 @@ namespace TarkovPriceViewer.UI
 
                                 if (!string.IsNullOrEmpty(text2)) //If tooltip text found
                                 {
-                                    item = MatchItemNameAPI(text, text2);
+                                    item = _itemRecognitionService.MatchItemName(text, text2, data);
                                     break;
                                 }
                             }
@@ -813,100 +817,13 @@ namespace TarkovPriceViewer.UI
 
         private Item MatchItemNameAPI(string name, string name2)
         {
-            char[] itemname = name.ToLower().Trim().ToCharArray();
-            char[] itemname2 = name2.ToLower().Trim().ToCharArray();
-
-            var result = new Item();
-            if (Program.tarkovAPI == null)
-            {
-                Debug.WriteLine("error : no item list.");
-                return result;
-            }
-            int d = 999;
-            foreach (var item in Program.tarkovAPI.items)
-            {
-                int d2;
-                if (itemname.Length > 0)
-                {
-                    d2 = levenshteinDistance(itemname, item.name.ToLower().ToCharArray());
-                    if (d2 < d)
-                    {
-                        result = item;
-                        d = d2;
-                        if (d == 0)
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                if (itemname2.Length > 0)
-                {
-                    d2 = levenshteinDistance(itemname2, item.name.ToLower().ToCharArray());
-                    if (d2 < d)
-                    {
-                        result = item;
-                        d = d2;
-                        if (d == 0)
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
-            if (result.name != null)
+            var data = _tarkovDataService.Data;
+            var result = _itemRecognitionService.MatchItemName(name, name2, data);
+            if (result != null && result.name != null)
             {
                 timer.Stop(); WaitingForTooltip = false; repeatCount = 0;
             }
-            if (name == "Encrypted message" || name2 == "Encrypted message")
-            {
-                result = new Item();
-                result.name = "Encrypted Message";
-            }
-            Debug.WriteLine(d + " text match : " + result.name);
-            return result;
-        }
-
-        private int getMinimum(int val1, int val2, int val3)
-        {
-            int minNumber = val1;
-            if (minNumber > val2) minNumber = val2;
-            if (minNumber > val3) minNumber = val3;
-            return minNumber;
-        }
-
-        private int levenshteinDistance(char[] s, char[] t)
-        {
-            int m = s.Length;
-            int n = t.Length;
-
-            int[,] d = new int[m + 1, n + 1];
-
-            for (int i = 1; i < m; i++)
-            {
-                d[i, 0] = i;
-            }
-
-            for (int j = 1; j < n; j++)
-            {
-                d[0, j] = j;
-            }
-
-            for (int j = 1; j < n; j++)
-            {
-                for (int i = 1; i < m; i++)
-                {
-                    if (s[i] == t[j])
-                    {
-                        d[i, j] = d[i - 1, j - 1];
-                    }
-                    else
-                    {
-                        d[i, j] = getMinimum(d[i - 1, j], d[i, j - 1], d[i - 1, j - 1]) + 1;
-                    }
-                }
-            }
-            return d[m - 1, n - 1];
+            return result ?? new Item();
         }
 
         private void FindItemInfoAPI(Item item, bool isiteminfo, CancellationToken cts_one)
