@@ -93,9 +93,9 @@ Settings
 You can change the settings how you like.
 </br>
 </br>
-If you got errors, please check you installed
+If you get errors, please check you have installed:
 </br>
-.NET Framework 4.7.2 (https://dotnet.microsoft.com/download/dotnet-framework/net472)
+Latest .NET Desktop Runtime 10.0 (or newer) (https://dotnet.microsoft.com/download)
 </br>
 Latest Visual C++ Redistributable (https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
@@ -106,17 +106,16 @@ Latest Visual C++ Redistributable (https://aka.ms/vs/17/release/vc_redist.x64.ex
 # Notice - Developer
 1. I'm a newbie developer who just graduated from college who used to program mostly in Java programs So please understand that most of the code is not optimized for C#. If you tell us about any strange parts in the code or where it can be improved, we will try to fix it as much as possible.
 2. Originally, I was going to make a program that recognizes the image of the product itself, but there were too many variables in the image, so I stopped development and changed the direction to recognizing the name. If anyone can implement it, I'll try to fix it.
-3. Capture the game screen, find the name with OpenCV and text it with Tesseract. If there are other free OCR modules, please recommend them.
+3. Capture the game screen, find the item name with OpenCV and recognize the text with PaddleOCR. If there are other free OCR modules, please recommend them.
 
 # Program (or site) used and license
 1. OpenCV (https://opencv.org/license)
-2. PaddleSharp (https://github.com/sdcb/PaddleSharp/blob/master/LICENSE)
-3. Fody (https://github.com/Fody/Fody/blob/master/License.txt)
-4. Tarkov Market (https://tarkov-market.com/)
-5. Tarkov Wiki (https://escapefromtarkov.fandom.com/wiki/Escape_from_Tarkov_Wiki)
-6. Escape from Tarkov (https://www.escapefromtarkov.com/)
-7. Tarkov.dev API (https://tarkov.dev/)
-8. TarkovTracker API (https://tarkovtracker.io)
+2. PaddleSharp / Sdcb.PaddleOCR (https://github.com/sdcb/PaddleSharp/blob/master/LICENSE)
+3. Tarkov Market (https://tarkov-market.com/)
+4. Tarkov Wiki (https://escapefromtarkov.fandom.com/wiki/Escape_from_Tarkov_Wiki)
+5. Escape from Tarkov (https://www.escapefromtarkov.com/)
+6. Tarkov.dev API (https://tarkov.dev/)
+7. TarkovTracker API (https://tarkovtracker.io)
 
 # Funny description written by ChatGPT
 Hey fellow Tarkov players, listen up! If you're struggling to keep up with all the ammo types in the game, or if you're having a hard time finding out the market price of certain items before the flea market opens, then boy do I have the perfect tool for you!
