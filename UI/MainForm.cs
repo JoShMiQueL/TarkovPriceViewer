@@ -817,17 +817,6 @@ namespace TarkovPriceViewer.UI
             fullimage.Dispose();
         }
 
-        private Item MatchItemNameAPI(string name, string name2)
-        {
-            var data = _tarkovDataService.Data;
-            var result = _itemRecognitionService.MatchItemName(name, name2, data);
-            if (result != null && result.name != null)
-            {
-                timer.Stop(); WaitingForTooltip = false; repeatCount = 0;
-            }
-            return result ?? new Item();
-        }
-
         private void FindItemInfoAPI(Item item, bool isiteminfo, CancellationToken cts_one)
         {
             if (item.link != null) //Market link
