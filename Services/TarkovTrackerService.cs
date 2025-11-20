@@ -34,9 +34,9 @@ namespace TarkovPriceViewer.Services
         public async Task UpdateTarkovTrackerAPI(bool force = false)
         {
             var settings = _settingsService.Settings;
-            string apiKey = settings.TarkovTrackerAPIKey;
-            
-            if (settings.UseTarkovTrackerAPI && !string.Equals(apiKey, "APIKey") && !string.IsNullOrWhiteSpace(apiKey))
+            string apiKey = settings.TarkovTrackerApiKey;
+
+            if (settings.UseTarkovTrackerApi && !string.Equals(apiKey, "APIKey") && !string.IsNullOrWhiteSpace(apiKey))
             {
                 // If Outdated by 1 minute
                 if (force || ((DateTime.Now - LastUpdated).TotalMinutes >= 1))

@@ -17,11 +17,16 @@ using System.Timers;
 using System.Windows.Forms;
 using static TarkovPriceViewer.Models.TarkovAPI;
 using TarkovPriceViewer.Models;
+using TarkovPriceViewer.Services;
 
 namespace TarkovPriceViewer.UI
 {
     public partial class MainForm : Form
     {
+        private readonly ISettingsService _settingsService;
+        private readonly ITarkovDataService _tarkovDataService;
+        private readonly IBallisticsService _ballisticsService;
+        private readonly ITarkovTrackerService _tarkovTrackerService;
 
         [DllImport("user32.dll")]
         private static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, int nFlags);
@@ -136,8 +141,17 @@ namespace TarkovPriceViewer.UI
         public static bool WaitingForTooltip = false;
         public static bool GettingItemInfo = false;
 
-        public MainForm()
+        public MainForm(
+            ISettingsService settingsService,
+            ITarkovDataService tarkovDataService,
+            IBallisticsService ballisticsService,
+            ITarkovTrackerService tarkovTrackerService)
         {
+            _settingsService = settingsService;
+            _tarkovDataService = tarkovDataService;
+            _ballisticsService = ballisticsService;
+            _tarkovTrackerService = tarkovTrackerService;
+
             int style = GetWindowLong(this.Handle, GWL_EXSTYLE);
             SetWindowLong(this.Handle, GWL_EXSTYLE, style | WS_EX_LAYERED);
             if (Environment.OSVersion.Version.Major >= 6)
@@ -147,8 +161,10 @@ namespace TarkovPriceViewer.UI
             InitializeComponent();
             SettingUI();
             SetHook();
+            overlay_info.InitializeServices(_settingsService, _tarkovDataService, _tarkovTrackerService);
             overlay_info.Owner = this;
             overlay_info.Show();
+            overlay_compare.InitializeServices(_settingsService, _tarkovDataService, _tarkovTrackerService);
             overlay_compare.Owner = this;
             overlay_compare.Show();
 
@@ -191,49 +207,44 @@ namespace TarkovPriceViewer.UI
 
         private void SettingUI()
         {
+            var s = _settingsService.Settings;
+
             MinimizeBox = false;
             MaximizeBox = false;
-            Version.Text = Program.settings["Version"];
-            MinimizetoTrayWhenStartup.Checked = Convert.ToBoolean(Program.settings["MinimizetoTrayWhenStartup"]);
-            CloseOverlayWhenMouseMoved.Checked = Convert.ToBoolean(Program.settings["CloseOverlayWhenMouseMoved"]);
-            RandomItem.Checked = Convert.ToBoolean(Program.settings["RandomItem"]);
-            last_price_box.Checked = Convert.ToBoolean(Program.settings["Show_Last_Price"]);
-            day_price_box.Checked = Convert.ToBoolean(Program.settings["Show_Day_Price"]);
-            week_price_box.Checked = Convert.ToBoolean(Program.settings["Show_Week_Price"]);
-            sell_to_trader_box.Checked = Convert.ToBoolean(Program.settings["Sell_to_Trader"]);
-            buy_from_trader_box.Checked = Convert.ToBoolean(Program.settings["Buy_From_Trader"]);
-            needs_box.Checked = Convert.ToBoolean(Program.settings["Needs"]);
-            barters_and_crafts_box.Checked = Convert.ToBoolean(Program.settings["Barters_and_Crafts"]);
-            ShowOverlay_Button.Text = GetKeybindText(Program.settings["ShowOverlay_Key"]);
-            HideOverlay_Button.Text = GetKeybindText(Program.settings["HideOverlay_Key"]);
-            CompareOverlay_Button.Text = GetKeybindText(Program.settings["CompareOverlay_Key"]);
-            TransParent_Bar.Value = Int32.Parse(Program.settings["Overlay_Transparent"]);
-            TransParent_Text.Text = Program.settings["Overlay_Transparent"];
-            TarkovTrackerCheckBox.Checked = Convert.ToBoolean(Program.settings["useTarkovTrackerAPI"]);
-            hideoutUpgrades_checkBox.Checked = Convert.ToBoolean(Program.settings["showHideoutUpgrades"]);
-            tarkovTrackerApiKey_textbox.Text = Program.settings["TarkovTrackerAPIKey"];
-            if (decimal.TryParse(Program.settings[Program.WorthPerSlotThresholdKey], NumberStyles.Any, CultureInfo.InvariantCulture, out var worthThreshold))
-            {
-                worthThreshold = Math.Max(worthThresholdNumeric.Minimum, Math.Min(worthThresholdNumeric.Maximum, worthThreshold));
-                worthThresholdNumeric.Value = worthThreshold;
-            }
-            else
-            {
-                worthThresholdNumeric.Value = (decimal)Program.WorthPerSlotThresholdDefault;
-            }
+            Version.Text = s.Version;
+            MinimizetoTrayWhenStartup.Checked = s.MinimizeToTrayOnStartup;
+            CloseOverlayWhenMouseMoved.Checked = s.CloseOverlayWhenMouseMoved;
+            RandomItem.Checked = s.RandomItem;
+            last_price_box.Checked = s.ShowLastPrice;
+            day_price_box.Checked = s.ShowDayPrice;
+            week_price_box.Checked = s.ShowWeekPrice;
+            sell_to_trader_box.Checked = s.SellToTrader;
+            buy_from_trader_box.Checked = s.BuyFromTrader;
+            needs_box.Checked = s.Needs;
+            barters_and_crafts_box.Checked = s.BartersAndCrafts;
+            ShowOverlay_Button.Text = GetKeybindText(s.ShowOverlayKey.ToString(CultureInfo.InvariantCulture));
+            HideOverlay_Button.Text = GetKeybindText(s.HideOverlayKey.ToString(CultureInfo.InvariantCulture));
+            CompareOverlay_Button.Text = GetKeybindText(s.CompareOverlayKey.ToString(CultureInfo.InvariantCulture));
+            TransParent_Bar.Value = s.OverlayTransparent;
+            TransParent_Text.Text = s.OverlayTransparent.ToString(CultureInfo.InvariantCulture);
+            TarkovTrackerCheckBox.Checked = s.UseTarkovTrackerApi;
+            hideoutUpgrades_checkBox.Checked = s.ShowHideoutUpgrades;
+            tarkovTrackerApiKey_textbox.Text = s.TarkovTrackerApiKey;
+            var worthThreshold = Math.Max(worthThresholdNumeric.Minimum, Math.Min(worthThresholdNumeric.Maximum, s.WorthPerSlotThreshold));
+            worthThresholdNumeric.Value = worthThreshold;
 
             languageBox.Items.Add("en");
             languageBox.Items.Add("ko");
             languageBox.Items.Add("cn");
             languageBox.Items.Add("jp");
             languageBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            languageBox.SelectedItem = Program.settings["Language"];
+            languageBox.SelectedItem = s.Language;
             languageBox.SelectedIndexChanged += languageBox_SelectedIndexChanged;
 
             modeBox.Items.Add("regular");
             modeBox.Items.Add("pve");
             modeBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            modeBox.SelectedItem = Program.settings["Mode"];
+            modeBox.SelectedItem = s.Mode;
             modeBox.SelectedIndexChanged += modeBox_SelectedIndexChanged;
 
             PaddleRecognizer(null);//init ocr
@@ -320,7 +331,7 @@ namespace TarkovPriceViewer.UI
                     {
                         if (Program.finishloadingballistics)
                         {
-                            if ((Program.finishloadingTarkovTrackerAPI && Convert.ToBoolean(Program.settings["useTarkovTrackerAPI"])) || !Convert.ToBoolean(Program.settings["useTarkovTrackerAPI"]))
+                            if ((Program.finishloadingTarkovTrackerAPI && Program.AppSettings.UseTarkovTrackerApi) || !Program.AppSettings.UseTarkovTrackerApi)
                             {
                                 int vkCode = Marshal.ReadInt32(lParam);
                                 HandleGlobalKeyOrMouse(vkCode);
@@ -350,14 +361,14 @@ namespace TarkovPriceViewer.UI
         {
             try
             {
-                int showKey = Int32.Parse(Program.settings["ShowOverlay_Key"]);
-                int compareKey = Int32.Parse(Program.settings["CompareOverlay_Key"]);
-                int hideKey = Int32.Parse(Program.settings["HideOverlay_Key"]);
+                int showKey = Program.AppSettings.ShowOverlayKey;
+                int compareKey = Program.AppSettings.CompareOverlayKey;
+                int hideKey = Program.AppSettings.HideOverlayKey;
 
                 if (code == showKey)
                 {
                     KeyPressedTime = DateTime.Now;
-                    Debug.WriteLine("\n\n----------------" + Program.settings["ShowOverlay_Key"] + " Key Pressed -----------------");
+                    Debug.WriteLine("\n\n----------------" + Program.AppSettings.ShowOverlayKey + " Key Pressed -----------------");
                     if ((!timer.Enabled || !WaitingForTooltip) && (KeyPressedTime - presstime).TotalMilliseconds >= 200)
                     {
                         point = Control.MousePosition;
@@ -397,7 +408,7 @@ namespace TarkovPriceViewer.UI
                 if (code >= 0)
                 {
                     if (!isinfoclosed
-                        && Convert.ToBoolean(Program.settings["CloseOverlayWhenMouseMoved"]) 
+                        && Program.AppSettings.CloseOverlayWhenMouseMoved 
                         && wParam == (IntPtr)WM_MOUSEMOVE
                         && (Math.Abs(Control.MousePosition.X - point.X) > 60 || Math.Abs(Control.MousePosition.Y - point.Y) > 60))
                     {
@@ -492,13 +503,15 @@ namespace TarkovPriceViewer.UI
         private void CloseApp()
         {
             if (TarkovTrackerCheckBox.Checked)
-                Program.settings["TarkovTrackerAPIKey"] = tarkovTrackerApiKey_textbox.Text;
+            {
+                _settingsService.Settings.TarkovTrackerApiKey = tarkovTrackerApiKey_textbox.Text;
+            }
 
             UnHook();
             TrayIcon.Dispose();
             CloseItemInfo();
             CloseItemCompare();
-            Program.SaveSettings();
+            _settingsService.Save();
             System.Windows.Forms.Application.Exit();
         }
 
@@ -544,7 +557,7 @@ namespace TarkovPriceViewer.UI
 
         private int FindItemTask(bool isiteminfo, CancellationToken cts_one)
         {
-            if (Convert.ToBoolean(Program.settings["RandomItem"]))
+            if (_settingsService.Settings.RandomItem)
             {
                 if (!cts_one.IsCancellationRequested)
                 {
@@ -647,15 +660,15 @@ namespace TarkovPriceViewer.UI
             Task getModel = Task.Run(async () => {
                 Debug.WriteLine("Download the paddle language model.");
                 RecognizationModel model;
-                if (Program.settings["Language"] == "ko")
+                if (_settingsService.Settings.Language == "ko")
                 {
                     model = await LocalDictOnlineRecognizationModel.KoreanV4.DownloadAsync();
                 }
-                else if (Program.settings["Language"] == "cn")
+                else if (_settingsService.Settings.Language == "cn")
                 {
                     model = await LocalDictOnlineRecognizationModel.ChineseV4.DownloadAsync();
                 }
-                else if (Program.settings["Language"] == "jp")
+                else if (_settingsService.Settings.Language == "jp")
                 {
                     model = await LocalDictOnlineRecognizationModel.JapanV4.DownloadAsync();
                 }
@@ -940,7 +953,8 @@ namespace TarkovPriceViewer.UI
 
         private void MinimizetoTrayWhenStartup_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["MinimizetoTrayWhenStartup"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.MinimizeToTrayOnStartup = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void Tarkov_Official_Click(object sender, EventArgs e)
@@ -960,7 +974,8 @@ namespace TarkovPriceViewer.UI
 
         private void CloseOverlayWhenMouseMoved_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["CloseOverlayWhenMouseMoved"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.CloseOverlayWhenMouseMoved = (sender as CheckBox).Checked;
+            _settingsService.Save();
             if ((sender as CheckBox).Checked)
             {
                 setMouseHook();
@@ -981,9 +996,10 @@ namespace TarkovPriceViewer.UI
                 }
                 else
                 {
-                    ShowOverlay_Button.Text = GetKeybindText(Program.settings["ShowOverlay_Key"]);
-                    HideOverlay_Button.Text = GetKeybindText(Program.settings["HideOverlay_Key"]);
-                    CompareOverlay_Button.Text = GetKeybindText(Program.settings["CompareOverlay_Key"]);
+                    var s = _settingsService.Settings;
+                    ShowOverlay_Button.Text = GetKeybindText(s.ShowOverlayKey.ToString(CultureInfo.InvariantCulture));
+                    HideOverlay_Button.Text = GetKeybindText(s.HideOverlayKey.ToString(CultureInfo.InvariantCulture));
+                    CompareOverlay_Button.Text = GetKeybindText(s.CompareOverlayKey.ToString(CultureInfo.InvariantCulture));
                 }
                 press_key_control = null;
             }
@@ -1015,8 +1031,9 @@ namespace TarkovPriceViewer.UI
         private void TransParent_Bar_Scroll(object sender, EventArgs e)
         {
             System.Windows.Forms.TrackBar tb = (sender as System.Windows.Forms.TrackBar);
-            Program.settings["Overlay_Transparent"] = tb.Value.ToString();
-            TransParent_Text.Text = Program.settings["Overlay_Transparent"] + "%";
+            _settingsService.Settings.OverlayTransparent = tb.Value;
+            TransParent_Text.Text = tb.Value + "%";
+            _settingsService.Save();
             overlay_info.ChangeTransparent(tb.Value);
         }
 
@@ -1037,47 +1054,45 @@ namespace TarkovPriceViewer.UI
 
         private int UpdateTask(Control control)
         {
+            string highgithub = "";
+            float highv = 0;
+
             try
             {
                 using (var httpClient = new HttpClient())
                 {
                     httpClient.Timeout = TimeSpan.FromSeconds(5);
-                    string highgithub = "";
-                    float highv = 0;
                     foreach (var github in Program.github)
                     {
-                        String check = httpClient.GetStringAsync(github + Program.checkupdate).Result;
-                        if (!check.Equals(""))
+                        string check = httpClient.GetStringAsync(github + Program.checkupdate).Result;
+                        if (!string.IsNullOrEmpty(check))
                         {
-                            String sp = check.Split('\n')[0];
+                            string sp = check.Split('\n')[0];
                             if (sp.Contains("Tarkov Price Viewer"))
                             {
-                                String[] sp2 = sp.Split(' ');
+                                string[] sp2 = sp.Split(' ');
                                 sp = sp2[sp2.Length - 1].Trim();
-                                float v;
-                                if (float.TryParse(sp.Replace("v", ""), out v))
+                                if (float.TryParse(sp.Replace("v", ""), out float v) && v > highv)
                                 {
-                                    if (highv < v)
-                                    {
-                                        highgithub = github;
-                                        highv = v;
-                                    }
+                                    highgithub = github;
+                                    highv = v;
                                 }
                             }
                         }
                     }
-                    if (!string.IsNullOrEmpty(highgithub))
+                }
+
+                if (!string.IsNullOrEmpty(highgithub))
+                {
+                    string vs = "v" + highv;
+                    if (!_settingsService.Settings.Version.Equals(vs, StringComparison.OrdinalIgnoreCase))
                     {
-                        string vs = "v" + highv;
-                        if (!Program.settings["Version"].Equals(vs))
-                        {
-                            MessageBox.Show("New version (" + vs + ") found. \nCurrent Version is " + Program.settings["Version"]);
-                            Process.Start(highgithub);
-                        }
-                        else
-                        {
-                            MessageBox.Show("You already have the latest version.");
-                        }
+                        MessageBox.Show($"New version ({vs}) found.\nCurrent Version is {_settingsService.Settings.Version}");
+                        Process.Start(highgithub);
+                    }
+                    else
+                    {
+                        MessageBox.Show("No New Version.");
                     }
                 }
             }
@@ -1086,7 +1101,8 @@ namespace TarkovPriceViewer.UI
                 Debug.WriteLine(ex.Message);
                 MessageBox.Show("Can not check update. Please check your network.");
             }
-            Action show = delegate ()
+
+            Action show = delegate
             {
                 control.Enabled = true;
             };
@@ -1096,42 +1112,50 @@ namespace TarkovPriceViewer.UI
 
         private void last_price_box_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["Show_Last_Price"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.ShowLastPrice = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void day_price_box_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["Show_Day_Price"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.ShowDayPrice = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void week_price_box_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["Show_Week_Price"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.ShowWeekPrice = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void sell_to_trader_box_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["Sell_to_Trader"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.SellToTrader = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void buy_from_trader_box_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["Buy_From_Trader"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.BuyFromTrader = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void worthThresholdNumeric_ValueChanged(object sender, EventArgs e)
         {
-            Program.settings[Program.WorthPerSlotThresholdKey] = worthThresholdNumeric.Value.ToString(CultureInfo.InvariantCulture);
+            _settingsService.Settings.WorthPerSlotThreshold = (int)worthThresholdNumeric.Value;
+            _settingsService.Save();
         }
 
         private void needs_box_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["Needs"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.Needs = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void barters_and_crafts_box_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["Barters_and_Crafts"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.BartersAndCrafts = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void Exit_Button_Click(object sender, EventArgs e)
@@ -1141,7 +1165,8 @@ namespace TarkovPriceViewer.UI
 
         private void RandomItem_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["RandomItem"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.RandomItem = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void check_idle_time_Tick(object sender, EventArgs e)
@@ -1163,7 +1188,8 @@ namespace TarkovPriceViewer.UI
 
         private void refreshAPI_b_Click(object sender, EventArgs e)
         {
-            Program.settings["TarkovTrackerAPIKey"] = tarkovTrackerApiKey_textbox.Text;
+            _settingsService.Settings.TarkovTrackerApiKey = tarkovTrackerApiKey_textbox.Text;
+            _settingsService.Save();
             Task.Factory.StartNew(() => Program.UpdateTarkovTrackerAPI());
 
             SetHook(true);
@@ -1176,7 +1202,8 @@ namespace TarkovPriceViewer.UI
 
         private void TarkovTrackerCheckBox_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["useTarkovTrackerAPI"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.UseTarkovTrackerApi = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void label1_MouseHover(object sender, EventArgs e)
@@ -1206,19 +1233,21 @@ namespace TarkovPriceViewer.UI
 
         private void hideoutUpgrades_checkBox_CheckedChanged(object sender, EventArgs e)
         {
-            Program.settings["showHideoutUpgrades"] = (sender as CheckBox).Checked.ToString();
+            _settingsService.Settings.ShowHideoutUpgrades = (sender as CheckBox).Checked;
+            _settingsService.Save();
         }
 
         private void languageBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             if ((sender as System.Windows.Forms.ComboBox).SelectedIndex >= 0)
             {
-                Program.settings["Language"] = (sender as System.Windows.Forms.ComboBox).SelectedItem.ToString();
+                _settingsService.Settings.Language = (sender as System.Windows.Forms.ComboBox).SelectedItem.ToString();
             }
             else
             {
-                Program.settings["Language"] = "en";
+                _settingsService.Settings.Language = "en";
             }
+            _settingsService.Save();
             lock (lockObject)
             {
                 languageModel = null;
@@ -1233,12 +1262,13 @@ namespace TarkovPriceViewer.UI
         {
             if ((sender as System.Windows.Forms.ComboBox).SelectedIndex >= 0)
             {
-                Program.settings["Mode"] = (sender as System.Windows.Forms.ComboBox).SelectedItem.ToString();
+                _settingsService.Settings.Mode = (sender as System.Windows.Forms.ComboBox).SelectedItem.ToString();
             }
             else
             {
-                Program.settings["Mode"] = "regular";
+                _settingsService.Settings.Mode = "regular";
             }
+            _settingsService.Save();
             Program.forceUpdateAPI = true;
             Program.forceUpdateTrackerAPI = true;
         }

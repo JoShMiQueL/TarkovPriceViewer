@@ -13,11 +13,16 @@ using System.Windows.Forms;
 using static TarkovPriceViewer.Models.TarkovAPI;
 using Item = TarkovPriceViewer.Models.TarkovAPI.Item;
 using TarkovPriceViewer.Models;
+using TarkovPriceViewer.Services;
 
 namespace TarkovPriceViewer.UI
 {
     public partial class Overlay : Form
     {
+        private ISettingsService _settingsService;
+        private ITarkovDataService _tarkovDataService;
+        private ITarkovTrackerService _tarkovTrackerService;
+
         [DllImport("user32.dll", SetLastError = true)]
         private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
         [DllImport("user32.dll")]
@@ -38,6 +43,16 @@ namespace TarkovPriceViewer.UI
 
         private static readonly Dictionary<string, string> LootTierByName = Models.LootTierMapping.ByName;
 
+        public void InitializeServices(
+            ISettingsService settingsService,
+            ITarkovDataService tarkovDataService,
+            ITarkovTrackerService tarkovTrackerService)
+        {
+            _settingsService = settingsService;
+            _tarkovDataService = tarkovDataService;
+            _tarkovTrackerService = tarkovTrackerService;
+        }
+
         public Overlay(bool _isinfoform)
         {
             InitializeComponent();
@@ -46,7 +61,9 @@ namespace TarkovPriceViewer.UI
             var style = GetWindowLong(this.Handle, GWL_EXSTYLE);
             if (isinfoform)
             {
-                this.Opacity = Int32.Parse(Program.settings["Overlay_Transparent"]) * 0.01;
+                // If services are not initialized yet, fall back to default opacity 0.8
+                var opacity = _settingsService?.Settings.OverlayTransparent ?? 80;
+                this.Opacity = opacity * 0.01;
                 SetWindowLong(this.Handle, GWL_EXSTYLE, style | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT);
             }
             else
@@ -267,7 +284,7 @@ namespace TarkovPriceViewer.UI
                                     sb.Append(String.Format("\nBest buy from {0} --> {1}{2}", BestBuyFrom_vendorName, vendorPrice.ToString("N0"), mainCurrency));
                             }
 
-                            if (Convert.ToBoolean(Program.settings["Show_Last_Price"]) && item.lastLowPrice != null)
+                            if (_settingsService?.Settings.ShowLastPrice == true && item.lastLowPrice != null)
                             {
                                 sb = RemoveTrailingLineBreaks(sb);
                                 var lastupdate = item.updated == null ? "" : Program.LastUpdated((DateTime)item.updated);
@@ -278,13 +295,13 @@ namespace TarkovPriceViewer.UI
                                 if (flea_profit > 0)
                                     sb.Append(String.Format("\nProfit : {0}{1} (Fee : {2}{3})", flea_profit.ToString("N0"), mainCurrency, item.fleaMarketFee.Value.ToString("N0"), mainCurrency));
                             }
-                            if (Convert.ToBoolean(Program.settings["Show_Day_Price"]) && item.avg24hPrice != null && item.avg24hPrice.Value > 0)
+                            if (_settingsService?.Settings.ShowDayPrice == true && item.avg24hPrice != null && item.avg24hPrice.Value > 0)
                             {
                                 sb.Append(String.Format("\nAverage 24h : {0}{1}", item.avg24hPrice.Value.ToString("N0"), mainCurrency));
                             }
 
                             bool sellToText = false;
-                            if (Convert.ToBoolean(Program.settings["Sell_to_Trader"]) && item.sellFor.Count > 0)
+                            if (_settingsService?.Settings.SellToTrader == true && item.sellFor.Count > 0)
                             {
                                 List<SellFor> list = new List<SellFor>(item.sellFor);
                                 list.RemoveAll(p => p.vendor.name == "Flea Market");
@@ -305,7 +322,7 @@ namespace TarkovPriceViewer.UI
                                     }
                                 }
                             }
-                            if (Convert.ToBoolean(Program.settings["Buy_From_Trader"]) && item.buyFor.Count > 0)
+                            if (_settingsService?.Settings.BuyFromTrader == true && item.buyFor.Count > 0)
                             {
                                 List<BuyFor> list = new List<BuyFor>(item.buyFor);
                                 list.RemoveAll(p => p.vendor.name == "Flea Market");
@@ -328,13 +345,17 @@ namespace TarkovPriceViewer.UI
                                 }
                             }
 
-                            if (Convert.ToBoolean(Program.settings["Needs"]) && item.usedInTasks.Count > 0 && Convert.ToBoolean(Program.settings["useTarkovTrackerAPI"]) && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
+                            if (_settingsService?.Settings.Needs == true && item.usedInTasks.Count > 0 && _settingsService.Settings.UseTarkovTrackerApi && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
                             {
                                 string tasks = "";
                                 var list = item.usedInTasks.OrderBy(p => p.minPlayerLevel);
                                 foreach (var task in list)
                                 {
-                                    if (!Program.tarkovTrackerAPI.data.tasksProgress.Any(e => e.id.Equals(task.id)))
+                                    var trackerData = _tarkovTrackerService?.TrackerData;
+                                    if (trackerData == null || trackerData.data == null || trackerData.data.tasksProgress == null)
+                                        continue;
+
+                                    if (!trackerData.data.tasksProgress.Any(e => e.id.Equals(task.id)))
                                     {
                                         string task1 = "";
 
@@ -356,7 +377,7 @@ namespace TarkovPriceViewer.UI
                                     sb.Append(String.Format("\n\nUsed in Task:\n{0}", tasks));
                                 }
                             }
-                            else if (Convert.ToBoolean(Program.settings["Needs"]) && item.usedInTasks.Count > 0 && !Convert.ToBoolean(Program.settings["useTarkovTrackerAPI"]) && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
+                            else if (_settingsService?.Settings.Needs == true && item.usedInTasks.Count > 0 && !_settingsService.Settings.UseTarkovTrackerApi && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
                             {
                                 string tasks = "";
                                 var list = item.usedInTasks.OrderBy(p => p.minPlayerLevel);
@@ -375,9 +396,9 @@ namespace TarkovPriceViewer.UI
                             }
 
                             //Hideout Upgrades
-                            if (!Program.settings["TarkovTrackerAPIKey"].Contains("APIKey") && Convert.ToBoolean(Program.settings["useTarkovTrackerAPI"]) && Convert.ToBoolean(Program.settings["showHideoutUpgrades"]))
+                            if (!string.IsNullOrWhiteSpace(_settingsService?.Settings.TarkovTrackerApiKey) && _settingsService.Settings.UseTarkovTrackerApi && _settingsService.Settings.ShowHideoutUpgrades)
                             {
-                                var HideoutStations = Program.tarkovAPI.hideoutStations;
+                                var HideoutStations = _tarkovDataService?.Data?.hideoutStations;
 
                                 if (item.name != "Roubles")
                                 {
@@ -408,9 +429,9 @@ namespace TarkovPriceViewer.UI
                                     }
                                 }
                             }
-                            else if (Convert.ToBoolean(Program.settings["showHideoutUpgrades"]))
+                            else if (_settingsService?.Settings.ShowHideoutUpgrades == true)
                             {
-                                var HideoutStations = Program.tarkovAPI.hideoutStations;
+                                var HideoutStations = _tarkovDataService?.Data?.hideoutStations;
 
                                 if (item.name != "Roubles")
                                 {
@@ -445,7 +466,7 @@ namespace TarkovPriceViewer.UI
                             }
 
                             //Crafts & Barters
-                            if (Convert.ToBoolean(Program.settings["Barters_and_Crafts"]))
+                            if (_settingsService?.Settings.BartersAndCrafts == true)
                             {
                                 string barters = "";
                                 if (item.bartersFor.Count > 0)
@@ -493,7 +514,7 @@ namespace TarkovPriceViewer.UI
                                 }
                             }
 
-                            if (Convert.ToBoolean(Program.settings["Barters_and_Crafts"]) && item.craftsFor.Count > 0)
+                            if (_settingsService?.Settings.BartersAndCrafts == true && item.craftsFor.Count > 0)
                             {
                                 string craftsForText = "";
                                 foreach (var crafts in item.craftsFor)

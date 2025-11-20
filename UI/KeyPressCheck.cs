@@ -35,13 +35,13 @@ namespace TarkovPriceViewer.UI
                     switch (button)
                     {
                         case 1:
-                            Program.settings["ShowOverlay_Key"] = ((int)e.KeyCode).ToString();
+                            Program.AppSettings.ShowOverlayKey = (int)e.KeyCode;
                             break;
                         case 2:
-                            Program.settings["HideOverlay_Key"] = ((int)e.KeyCode).ToString();
+                            Program.AppSettings.HideOverlayKey = (int)e.KeyCode;
                             break;
                         case 3:
-                            Program.settings["CompareOverlay_Key"] = ((int)e.KeyCode).ToString();
+                            Program.AppSettings.CompareOverlayKey = (int)e.KeyCode;
                             break;
                     }
                     if (Owner != null)
@@ -81,13 +81,13 @@ namespace TarkovPriceViewer.UI
                 switch (button)
                 {
                     case 1:
-                        Program.settings["ShowOverlay_Key"] = mouseCode.ToString();
+                        Program.AppSettings.ShowOverlayKey = mouseCode;
                         break;
                     case 2:
-                        Program.settings["HideOverlay_Key"] = mouseCode.ToString();
+                        Program.AppSettings.HideOverlayKey = mouseCode;
                         break;
                     case 3:
-                        Program.settings["CompareOverlay_Key"] = mouseCode.ToString();
+                        Program.AppSettings.CompareOverlayKey = mouseCode;
                         break;
                 }
 
