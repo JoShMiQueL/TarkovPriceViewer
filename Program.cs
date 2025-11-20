@@ -89,7 +89,6 @@ namespace TarkovPriceViewer
             _tarkovTrackerService = _host.Services.GetRequiredService<ITarkovTrackerService>();
 
             LoadSettings();
-            EnsureResourcesDirectory();
 
             _ = LoadBallisticsDataAsync();
             UpdateItemListAPI();
@@ -144,20 +143,6 @@ namespace TarkovPriceViewer
                 {
                     Debug.WriteLine("Error 15: " + ex.Message);
                 }
-            }
-        }
-
-        private static void EnsureResourcesDirectory()
-        {
-            DirectoryInfo di = new DirectoryInfo(@"Resources");
-            if (!di.Exists)
-            {
-                di.Create();
-            }
-
-            if (File.Exists(@"Resources\TarkovAPI.json"))
-            {
-                APILastUpdated = File.GetLastWriteTime(@"Resources\TarkovAPI.json");
             }
         }
 

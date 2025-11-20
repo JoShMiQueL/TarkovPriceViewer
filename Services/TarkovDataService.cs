@@ -23,7 +23,8 @@ namespace TarkovPriceViewer.Services
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ISettingsService _settingsService;
-        private const string API_FILE_PATH = @"Resources\TarkovAPI.json";
+        // Local cache file for Tarkov.dev items data
+        private const string API_FILE_PATH = "tarkov-dev-items.json";
         
         public TarkovAPI.Data Data { get; private set; }
         public DateTime LastUpdated { get; private set; } = DateTime.Now.AddHours(-5);
@@ -35,15 +36,8 @@ namespace TarkovPriceViewer.Services
             _httpClientFactory = httpClientFactory;
             _settingsService = settingsService;
             
-            EnsureResourcesDirectory();
             if (File.Exists(API_FILE_PATH))
                 LastUpdated = File.GetLastWriteTime(API_FILE_PATH);
-        }
-
-        private void EnsureResourcesDirectory()
-        {
-             DirectoryInfo di = new DirectoryInfo(@"Resources");
-             if (!di.Exists) di.Create();
         }
 
         public async Task UpdateItemListAPI(bool force = false)
