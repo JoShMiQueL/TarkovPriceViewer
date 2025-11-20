@@ -6,7 +6,7 @@ namespace TarkovPriceViewer.Configuration
 {
     public class AppSettings
     {
-        public string Version { get; set; } = "v1.34";
+        public string Version { get; set; } = "v1.35";
         public bool MinimizeToTrayOnStartup { get; set; } = false;
         public bool CloseOverlayWhenMouseMoved { get; set; } = true;
         public bool RandomItem { get; set; } = false;
