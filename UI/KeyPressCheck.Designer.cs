@@ -31,6 +31,7 @@ namespace TarkovPriceViewer.UI
 		{
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(KeyPressCheck));
 			label1 = new System.Windows.Forms.Label();
+			label2 = new System.Windows.Forms.Label();
 			SuspendLayout();
 			// 
 			// label1
@@ -44,6 +45,18 @@ namespace TarkovPriceViewer.UI
 			label1.TabIndex = 0;
 			label1.Text = "Press Key";
 			// 
+			// label2
+			// 
+			label2.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+			label2.AutoSize = true;
+			label2.Font = new System.Drawing.Font("Segoe UI", 7F);
+			label2.Location = new System.Drawing.Point(19, 100);
+			label2.Name = "label2";
+			label2.RightToLeft = System.Windows.Forms.RightToLeft.No;
+			label2.Size = new System.Drawing.Size(83, 12);
+			label2.TabIndex = 1;
+			label2.Text = "Press ESC to close";
+			// 
 			// KeyPressCheck
 			// 
 			AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -51,6 +64,7 @@ namespace TarkovPriceViewer.UI
 			AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
 			ClientSize = new System.Drawing.Size(120, 121);
 			ControlBox = false;
+			Controls.Add(label2);
 			Controls.Add(label1);
 			FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
 			Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
@@ -66,5 +80,6 @@ namespace TarkovPriceViewer.UI
 		#endregion
 
 		private System.Windows.Forms.Label label1;
-    }
+		private System.Windows.Forms.Label label2;
+	}
 }
