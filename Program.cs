@@ -297,12 +297,5 @@ namespace TarkovPriceViewer
                 Debug.WriteLine("Error 13: " + e.Message);
             }
         }
-
-        private static void getBallistics()
-        {
-            // Legacy entry point kept for compatibility with existing code paths.
-            // Delegate to the new async ballistics loader based on IBallisticsService.
-            _ = LoadBallisticsDataAsync();
-        }
     }
 }
