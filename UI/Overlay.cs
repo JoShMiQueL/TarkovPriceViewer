@@ -10,10 +10,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
-using static TarkovPriceViewer.TarkovAPI;
-using Item = TarkovPriceViewer.TarkovAPI.Item;
+using static TarkovPriceViewer.Models.TarkovAPI;
+using Item = TarkovPriceViewer.Models.TarkovAPI.Item;
+using TarkovPriceViewer.Models;
 
-namespace TarkovPriceViewer
+namespace TarkovPriceViewer.UI
 {
     public partial class Overlay : Form
     {
@@ -35,7 +36,7 @@ namespace TarkovPriceViewer
 
         private Object _lock = new Object();
 
-        private static readonly Dictionary<string, string> LootTierByName = TarkovPriceViewer.LootTierMapping.ByName;
+        private static readonly Dictionary<string, string> LootTierByName = Models.LootTierMapping.ByName;
 
         public Overlay(bool _isinfoform)
         {

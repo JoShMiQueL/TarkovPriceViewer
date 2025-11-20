@@ -11,6 +11,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using TarkovPriceViewer.UI;
+using TarkovPriceViewer.Models;
 
 namespace TarkovPriceViewer
 {
@@ -163,7 +165,7 @@ namespace TarkovPriceViewer
                             // Check to make sure the response didn't return an error schema
                             if (tarkovAPI.items == null)
                             {
-                                TarkovPriceViewer.ResponseShell temp = JsonConvert.DeserializeObject<TarkovPriceViewer.ResponseShell>(responseContent);
+                                Models.ResponseShell temp = JsonConvert.DeserializeObject<Models.ResponseShell>(responseContent);
                                 tarkovAPI = temp.data;
                             }
                         }
@@ -191,7 +193,7 @@ namespace TarkovPriceViewer
                         // Check to make sure the response didn't return an error schema
                         if (tarkovAPI.items == null)
                         {
-                            TarkovPriceViewer.ResponseShell temp = JsonConvert.DeserializeObject<TarkovPriceViewer.ResponseShell>(responseContent);
+                            Models.ResponseShell temp = JsonConvert.DeserializeObject<Models.ResponseShell>(responseContent);
                             tarkovAPI = temp.data;
                         }
                     }

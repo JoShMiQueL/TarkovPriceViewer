@@ -1,6 +1,6 @@
 ﻿using System.Windows.Forms;
 
-namespace TarkovPriceViewer
+namespace TarkovPriceViewer.UI
 {
     public partial class KeyPressCheck : Form
     {
