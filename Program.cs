@@ -24,6 +24,7 @@ namespace TarkovPriceViewer
         private static IBallisticsService _ballisticsService;
         private static ITarkovDataService _tarkovDataService;
         private static ITarkovTrackerService _tarkovTrackerService;
+        private static IOcrService _ocrService;
 
         private static MainForm main = null;
         public static readonly Dictionary<String, Ballistic> blist = new Dictionary<String, Ballistic>();
@@ -87,15 +88,79 @@ namespace TarkovPriceViewer
             _ballisticsService = _host.Services.GetRequiredService<IBallisticsService>();
             _tarkovDataService = _host.Services.GetRequiredService<ITarkovDataService>();
             _tarkovTrackerService = _host.Services.GetRequiredService<ITarkovTrackerService>();
+            _ocrService = _host.Services.GetRequiredService<IOcrService>();
 
             LoadSettings();
 
             _ = LoadBallisticsDataAsync();
-            UpdateItemListAPI();
+            // Eagerly preload TarkovDev and TarkovTracker so the first scan has all required data
+            try
+            {
+                if (forceUpdateAPI)
+                {
+                    lock (lockObject)
+                    {
+                        tarkovAPI = null;
+                    }
+                }
+
+                _tarkovDataService.UpdateItemListAPI(forceUpdateAPI).GetAwaiter().GetResult();
+                forceUpdateAPI = false;
+
+                lock (lockObject)
+                {
+                    tarkovAPI = _tarkovDataService.Data;
+                    APILastUpdated = _tarkovDataService.LastUpdated;
+                    finishloadingAPI = _tarkovDataService.IsLoaded;
+                }
+
+                Debug.WriteLine("\n--> " + _tarkovDataService.GetLastUpdatedText() + "\n");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("--> Error updating Tarkov API via service at startup: " + ex.Message);
+            }
+
+            // Eagerly preload PaddleOCR so the first scan does not need to download/initialize the model
+            try
+            {
+                var lang = _settingsService.Settings.Language;
+                if (string.IsNullOrWhiteSpace(lang))
+                {
+                    lang = "en";
+                }
+                _ocrService.EnsureInitialized(lang);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("--> Error preloading PaddleOCR at startup: " + ex.Message);
+            }
 
             if (AppSettings.UseTarkovTrackerApi)
             {
-                UpdateTarkovTrackerAPI();
+                try
+                {
+                    if (forceUpdateTrackerAPI)
+                    {
+                        lock (lockObject)
+                        {
+                            tarkovTrackerAPI = null;
+                        }
+                    }
+
+                    _tarkovTrackerService.UpdateTarkovTrackerAPI(forceUpdateTrackerAPI).GetAwaiter().GetResult();
+                    forceUpdateTrackerAPI = false;
+
+                    lock (lockObject)
+                    {
+                        tarkovTrackerAPI = _tarkovTrackerService.TrackerData;
+                        finishloadingTarkovTrackerAPI = _tarkovTrackerService.IsLoaded;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("--> Error updating TarkovTracker API via service at startup: " + ex.Message);
+                }
             }
 
             main = _host.Services.GetRequiredService<MainForm>();
