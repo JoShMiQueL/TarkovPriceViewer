@@ -111,8 +111,21 @@ namespace TarkovPriceViewer.Services
                     // Invalidate cache if it does not contain new schema fields
                     if (!responseContent.Contains("foundInRaid") || !responseContent.Contains("\"itemRequirements\":[{\"id\":"))
                     {
-                        Debug.WriteLine("\n--> TarkovAPI cache outdated (missing foundInRaid or itemRequirements.id), forcing update...");
-                        // Force a fresh update and return; caller will deserialize new data
+                        long size = 0;
+                        try
+                        {
+                            size = new FileInfo(API_FILE_PATH).Length;
+                        }
+                        catch
+                        {
+                            // ignore size errors, we'll still log the path
+                        }
+
+                        Debug.WriteLine($"\n--> TarkovAPI cache outdated (missing foundInRaid or itemRequirements.id) in '{API_FILE_PATH}' (size={size} bytes), forcing update...");
+
+                        // Force a fresh update and return; caller will deserialize new data.
+                        // This method is only called from the async UpdateItemListAPI path (never directly on the UI thread),
+                        // so using GetAwaiter().GetResult() here keeps the API of LoadFromLocalFile synchronous without risking UI deadlocks.
                         UpdateItemListAPI(force: true).GetAwaiter().GetResult();
                         return;
                     }
@@ -131,7 +144,20 @@ namespace TarkovPriceViewer.Services
             }
             catch (Exception ex)
             {
-                 Debug.WriteLine("\n--> Error trying to load Tarkov API from local file: " + ex.Message);
+                long size = 0;
+                try
+                {
+                    if (File.Exists(API_FILE_PATH))
+                    {
+                        size = new FileInfo(API_FILE_PATH).Length;
+                    }
+                }
+                catch
+                {
+                    // ignore size errors, we still log the path and exception
+                }
+
+                Debug.WriteLine($"\n--> Error trying to load Tarkov API from local file '{API_FILE_PATH}' (size={size} bytes): " + ex.Message);
             }
         }
 

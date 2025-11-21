@@ -658,33 +658,7 @@ namespace TarkovPriceViewer.UI
         {
             try
             {
-                var data = _tarkovDataService?.Data;
-                if (data == null || _currentItem == null)
-                {
-                    return;
-                }
-
-                // Apply an immediate local increment. Try tasks first; if none, fall back to hideout (local only)
-                var result = _tarkovTrackerService.ApplyLocalChangeForCurrentItem(_currentItem, data, +1);
-                if (!result.Success && (result.FailureReason == TrackerUpdateFailureReason.NoObjectiveForItem || result.FailureReason == TrackerUpdateFailureReason.AlreadyCompleted))
-                {
-                    result = _tarkovTrackerService.ApplyLocalHideoutChangeForCurrentItem(_currentItem, data, +1);
-                }
-
-                Debug.WriteLine($"[Overlay] Tracker local update result (delta=1): Success={result.Success}, Reason={result.FailureReason}, Remaining={result.Objective?.Remaining}");
-
-                if (result.Success)
-                {
-                    try
-                    {
-                        var token = CancellationToken.None;
-                        Invoke(new Action(() => ShowInfoAPI(_currentItem, token)));
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("[Overlay] Error while refreshing overlay after tracker update: " + ex.Message);
-                    }
-                }
+                ApplyTrackerDelta(+1);
             }
             catch (Exception ex)
             {
@@ -696,37 +670,44 @@ namespace TarkovPriceViewer.UI
         {
             try
             {
-                var data = _tarkovDataService?.Data;
-                if (data == null || _currentItem == null)
-                {
-                    return;
-                }
-
-                // Apply an immediate local decrement. Try tasks first; if none, fall back to hideout (local only)
-                var result = _tarkovTrackerService.ApplyLocalChangeForCurrentItem(_currentItem, data, -1);
-                if (!result.Success && (result.FailureReason == TrackerUpdateFailureReason.NoObjectiveForItem || result.FailureReason == TrackerUpdateFailureReason.AlreadyCompleted))
-                {
-                    result = _tarkovTrackerService.ApplyLocalHideoutChangeForCurrentItem(_currentItem, data, -1);
-                }
-
-                Debug.WriteLine($"[Overlay] Tracker local update result (delta=-1): Success={result.Success}, Reason={result.FailureReason}, Remaining={result.Objective?.Remaining}");
-
-                if (result.Success)
-                {
-                    try
-                    {
-                        var token = CancellationToken.None;
-                        Invoke(new Action(() => ShowInfoAPI(_currentItem, token)));
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("[Overlay] Error while refreshing overlay after tracker update: " + ex.Message);
-                    }
-                }
+                ApplyTrackerDelta(-1);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("[Overlay] Error while decrementing objective: " + ex.Message);
+            }
+        }
+
+        private void ApplyTrackerDelta(int delta)
+        {
+            var data = _tarkovDataService?.Data;
+            if (data == null || _currentItem == null)
+            {
+                return;
+            }
+
+            // Apply an immediate local change. Try tasks first; if none, fall back to hideout (local only)
+            var result = _tarkovTrackerService.ApplyLocalChangeForCurrentItem(_currentItem, data, delta);
+            if (!result.Success && (result.FailureReason == TrackerUpdateFailureReason.NoObjectiveForItem || result.FailureReason == TrackerUpdateFailureReason.AlreadyCompleted))
+            {
+                result = _tarkovTrackerService.ApplyLocalHideoutChangeForCurrentItem(_currentItem, data, delta);
+            }
+
+            Debug.WriteLine($"[Overlay] Tracker local update result (delta={delta}): Success={result.Success}, Reason={result.FailureReason}, Remaining={result.Objective?.Remaining}");
+
+            if (!result.Success)
+            {
+                return;
+            }
+
+            try
+            {
+                var token = CancellationToken.None;
+                Invoke(new Action(() => ShowInfoAPI(_currentItem, token)));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[Overlay] Error while refreshing overlay after tracker update: " + ex.Message);
             }
         }
 

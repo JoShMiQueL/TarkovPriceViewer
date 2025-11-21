@@ -71,7 +71,6 @@ namespace TarkovPriceViewer.Services
 
             try
             {
-                Debug.WriteLine("Download the paddle language model.");
                 RecognizationModel model;
                 if (language == "ko")
                 {
@@ -94,7 +93,7 @@ namespace TarkovPriceViewer.Services
                 {
                     if (_languageModel == null)
                     {
-                        Debug.WriteLine("language model setted.");
+                        Debug.WriteLine("Download the paddle language model.");
                         _languageModel = model;
                     }
                 }
@@ -111,8 +110,6 @@ namespace TarkovPriceViewer.Services
             {
                 return string.Empty;
             }
-
-            EnsureInitialized("en"); // language should be set by caller via EnsureInitialized beforehand
 
             if (_ocrRecognizer == null)
             {
