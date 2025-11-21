@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using static TarkovPriceViewer.Models.TarkovAPI;
 using System.Collections.Generic;
+using System.IO;
 
 namespace TarkovPriceViewer.Services
 {
@@ -20,13 +21,20 @@ namespace TarkovPriceViewer.Services
         Task UpdateTarkovTrackerAPI(bool force = false);
 
         CurrentTrackedObjective GetCurrentTrackedObjectiveForItem(TarkovAPI.Item item, TarkovAPI.Data tarkovData);
+        CurrentTrackedObjective GetCurrentHideoutRequirementForItem(TarkovAPI.Item item, TarkovAPI.Data tarkovData);
         TrackerUpdateResult TryIncrementCurrentObjectiveForCurrentItem(TarkovAPI.Item item, TarkovAPI.Data tarkovData);
         TrackerUpdateResult TryDecrementCurrentObjectiveForCurrentItem(TarkovAPI.Item item, TarkovAPI.Data tarkovData);
 
         TrackerUpdateResult TryChangeCurrentObjectiveForCurrentItem(TarkovAPI.Item item, TarkovAPI.Data tarkovData, int delta);
 
-        // Aplica un cambio solo en memoria (caché local) y encola el objetivo para flush posterior
+        // Apply a change only in memory (local cache) and enqueue the objective for later flush
         TrackerUpdateResult ApplyLocalChangeForCurrentItem(TarkovAPI.Item item, TarkovAPI.Data tarkovData, int delta);
+
+        // Local-only changes for hideout (not sent to the API)
+        TrackerUpdateResult ApplyLocalHideoutChangeForCurrentItem(TarkovAPI.Item item, TarkovAPI.Data tarkovData, int delta);
+
+        // Additional local progress for a specific hideout requirement
+        int GetLocalHideoutExtraCount(string requirementId);
 
         Task<TrackerUpdateResult> IncrementObjectiveAndSyncAsync(TarkovAPI.Item item, TarkovAPI.Data tarkovData, CancellationToken cancellationToken = default);
         Task<TrackerUpdateResult> DecrementObjectiveAndSyncAsync(TarkovAPI.Item item, TarkovAPI.Data tarkovData, CancellationToken cancellationToken = default);
@@ -37,7 +45,11 @@ namespace TarkovPriceViewer.Services
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ISettingsService _settingsService;
-        
+        private readonly ITarkovDataService _tarkovDataService;
+
+        private const string LOCAL_TASKS_FILE = "tarkovtracker-tasks.json";
+        private const string LOCAL_HIDEOUT_FILE = "tarkovtracker-hideout.json";
+
         public TarkovTrackerAPI.Root TrackerData { get; private set; }
         public bool IsLoaded { get; private set; }
         public DateTime LastUpdated { get; private set; } = DateTime.Now.AddHours(-5);
@@ -46,16 +58,33 @@ namespace TarkovPriceViewer.Services
         private DateTime _lastTooManyRequests = DateTime.MinValue;
         private static readonly TimeSpan TooManyRequestsCooldown = TimeSpan.FromSeconds(5);
 
-        private readonly Dictionary<string, CurrentTrackedObjective> _pendingObjectives = new Dictionary<string, CurrentTrackedObjective>();
+        private readonly Dictionary<string, CurrentTrackedObjective> _pendingTaskObjectives = new Dictionary<string, CurrentTrackedObjective>();
+        private readonly Dictionary<string, int> _localHideout = new Dictionary<string, int>();
         private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(30);
 
-        public TarkovTrackerService(IHttpClientFactory httpClientFactory, ISettingsService settingsService)
+        public TarkovTrackerService(IHttpClientFactory httpClientFactory, ISettingsService settingsService, ITarkovDataService tarkovDataService)
         {
             _httpClientFactory = httpClientFactory;
             _settingsService = settingsService;
+            _tarkovDataService = tarkovDataService;
 
-            // Lanzar un bucle en background que haga flush periódico de los cambios locales a la API
+            // Load local state (pending objectives and hideout information) from disk if it exists
+            LoadLocalTasksState();
+            LoadLocalHideoutState();
+
+            // Start a background loop that periodically flushes local changes to the API
             Task.Run(FlushLoopAsync);
+        }
+
+        public int GetLocalHideoutExtraCount(string requirementId)
+        {
+            if (string.IsNullOrEmpty(requirementId))
+                return 0;
+
+            lock (_lockObject)
+            {
+                return _localHideout.TryGetValue(requirementId, out var value) ? value : 0;
+            }
         }
 
         private void ApplyLocalObjectiveUpdate(CurrentTrackedObjective updatedObjective)
@@ -71,14 +100,23 @@ namespace TarkovPriceViewer.Services
                 {
                     var trackerData = TrackerData?.data;
                     if (trackerData == null || trackerData.taskObjectivesProgress == null)
+                    {
                         return;
+                    }
 
                     var progress = trackerData.taskObjectivesProgress.FirstOrDefault(p => p.id == updatedObjective.ObjectiveId);
-                    if (progress != null)
+                    if (progress == null)
                     {
-                        progress.count = updatedObjective.CurrentCount;
-                        progress.complete = updatedObjective.CurrentCount >= updatedObjective.RequiredCount;
+                        // If the API has not yet returned progress for this objective, create a local entry
+                        progress = new TarkovTrackerAPI.TaskObjectivesProgress
+                        {
+                            id = updatedObjective.ObjectiveId
+                        };
+                        trackerData.taskObjectivesProgress.Add(progress);
                     }
+
+                    progress.count = updatedObjective.CurrentCount;
+                    progress.complete = updatedObjective.CurrentCount >= updatedObjective.RequiredCount;
                 }
             }
             catch (Exception ex)
@@ -109,13 +147,13 @@ namespace TarkovPriceViewer.Services
 
             lock (_lockObject)
             {
-                if (_pendingObjectives.Count == 0)
+                if (_pendingTaskObjectives.Count == 0)
                 {
                     return;
                 }
 
-                snapshot = _pendingObjectives.Values.ToList();
-                _pendingObjectives.Clear();
+                snapshot = _pendingTaskObjectives.Values.ToList();
+                _pendingTaskObjectives.Clear();
             }
 
             foreach (var objective in snapshot)
@@ -124,10 +162,10 @@ namespace TarkovPriceViewer.Services
                 {
                     if (!await UpdateObjectiveCountAsync(objective, cancellationToken).ConfigureAwait(false))
                     {
-                        // Si falla (por ejemplo 429), volver a encolarlo para intentar más tarde
+                        // If it fails (for example 429), re-enqueue it to retry later
                         lock (_lockObject)
                         {
-                            _pendingObjectives[objective.ObjectiveId] = objective;
+                            _pendingTaskObjectives[objective.ObjectiveId] = objective;
                         }
                     }
                 }
@@ -136,10 +174,16 @@ namespace TarkovPriceViewer.Services
                     Debug.WriteLine("[TarkovTracker] Error while flushing objective: " + ex.Message);
                     lock (_lockObject)
                     {
-                        _pendingObjectives[objective.ObjectiveId] = objective;
+                        _pendingTaskObjectives[objective.ObjectiveId] = objective;
                     }
                 }
             }
+
+            // Save the new local state of tasks after the flush (in case there are re-enqueued objectives)
+            SaveLocalTasksState();
+
+            // Reuse the same cycle to also clean and save the local hideout state
+            SaveLocalHideoutState();
         }
 
         public async Task UpdateTarkovTrackerAPI(bool force = false)
@@ -174,7 +218,7 @@ namespace TarkovPriceViewer.Services
                                 Debug.WriteLine("\n--> TarkovTracker API Updated!");
 
                                 // Tomar un snapshot de los objetivos pendientes para re-aplicarlos después del GET
-                                pendingSnapshot = _pendingObjectives.Values.ToList();
+                                pendingSnapshot = _pendingTaskObjectives.Values.ToList();
                             }
 
                             // Re-aplicar los cambios locales pendientes sobre los datos recién obtenidos
@@ -252,69 +296,70 @@ namespace TarkovPriceViewer.Services
 
         public CurrentTrackedObjective GetCurrentTrackedObjectiveForItem(Item item, Data tarkovData)
         {
-            if (item == null || tarkovData == null || TrackerData == null || TrackerData.data == null)
+            // To show the current objective on the overlay, use the same directional logic
+            // as for an increment: first incomplete objective ordered by ascending minPlayerLevel.
+            return SelectTaskObjectiveForDelta(item, tarkovData, +1);
+        }
+
+        public CurrentTrackedObjective GetCurrentHideoutRequirementForItem(Item item, Data tarkovData)
+        {
+            if (item == null || tarkovData == null)
             {
                 return null;
             }
 
-            var trackerData = TrackerData.data;
-
-            // Prefer tasks over hideout, and among tasks prefer the ones with lower minPlayerLevel
-            var usedInTasks = item.usedInTasks;
-            if (usedInTasks == null || usedInTasks.Count == 0)
+            var hideoutStations = tarkovData.hideoutStations;
+            if (hideoutStations == null)
             {
                 return null;
             }
 
-            foreach (var task in usedInTasks.OrderBy(t => t.minPlayerLevel ?? int.MaxValue))
+            CurrentTrackedObjective best = null;
+            int bestLevel = int.MinValue;
+
+            foreach (var station in hideoutStations)
             {
-                if (task.objectives == null)
+                if (station.levels == null)
                     continue;
 
-                // Skip completed tasks entirely
-                if (trackerData.tasksProgress != null && trackerData.tasksProgress.Exists(e => e.id == task.id && e.complete == true))
-                    continue;
-
-                foreach (var obj in task.objectives)
+                foreach (var stationLevel in station.levels)
                 {
-                    if (obj.type == "findItem" && obj.foundInRaid == true && obj.items != null && obj.items.Any(i => i.id == item.id))
+                    if (stationLevel.itemRequirements == null)
+                        continue;
+
+                    foreach (var itemReq in stationLevel.itemRequirements)
                     {
-                        int required = obj.count ?? 0;
-                        int current = 0;
+                        if (itemReq.item == null || itemReq.item.id != item.id)
+                            continue;
 
-                        if (trackerData.taskObjectivesProgress != null && obj.id != null)
+                        int required = itemReq.count ?? 0;
+                        int extraLocal = GetLocalHideoutExtraCount(itemReq.id);
+                        int current = extraLocal;
+                        if (current > required)
+                            current = required;
+
+                        int levelValue = stationLevel.level ?? int.MaxValue;
+                        if (best == null || levelValue < bestLevel)
                         {
-                            var progress = trackerData.taskObjectivesProgress.FirstOrDefault(p => p.id == obj.id);
-                            if (progress != null)
+                            bestLevel = levelValue;
+                            best = new CurrentTrackedObjective
                             {
-                                if (progress.complete == true)
-                                {
-                                    current = required;
-                                }
-                                else if (progress.count != null)
-                                {
-                                    current = progress.count.Value;
-                                }
-                            }
+                                ObjectiveId = itemReq.id, // here we use the hideout requirement ID
+                                ItemId = item.id,
+                                RequiredCount = required,
+                                CurrentCount = current
+                            };
                         }
-
-                        return new CurrentTrackedObjective
-                        {
-                            ObjectiveId = obj.id,
-                            ItemId = item.id,
-                            RequiredCount = required,
-                            CurrentCount = current
-                        };
                     }
                 }
             }
 
-            return null;
+            return best;
         }
 
         public TrackerUpdateResult TryIncrementCurrentObjectiveForCurrentItem(Item item, Data tarkovData)
         {
-            var objective = GetCurrentTrackedObjectiveForItem(item, tarkovData);
+            var objective = SelectTaskObjectiveForDelta(item, tarkovData, +1);
             if (objective == null)
             {
                 return TrackerUpdateResult.Fail(TrackerUpdateFailureReason.NoObjectiveForItem);
@@ -339,7 +384,7 @@ namespace TarkovPriceViewer.Services
 
         public TrackerUpdateResult TryDecrementCurrentObjectiveForCurrentItem(Item item, Data tarkovData)
         {
-            var objective = GetCurrentTrackedObjectiveForItem(item, tarkovData);
+            var objective = SelectTaskObjectiveForDelta(item, tarkovData, -1);
             if (objective == null)
             {
                 return TrackerUpdateResult.Fail(TrackerUpdateFailureReason.NoObjectiveForItem);
@@ -369,7 +414,9 @@ namespace TarkovPriceViewer.Services
                 return TrackerUpdateResult.Fail(TrackerUpdateFailureReason.NoObjectiveForItem);
             }
 
-            var objective = GetCurrentTrackedObjectiveForItem(item, tarkovData);
+            // Directional selection: for + we look for the first incomplete objective,
+            // for - the last objective with progress > 0, ordered by ascending minPlayerLevel
+            var objective = SelectTaskObjectiveForDelta(item, tarkovData, delta);
             if (objective == null)
             {
                 return TrackerUpdateResult.Fail(TrackerUpdateFailureReason.NoObjectiveForItem);
@@ -389,13 +436,13 @@ namespace TarkovPriceViewer.Services
             {
                 if (delta > 0 && objective.CurrentCount >= objective.RequiredCount)
                 {
-                    // Ya está completado, no podemos sumar más
+                    // Already completed, nothing more can be added
                     return TrackerUpdateResult.Fail(TrackerUpdateFailureReason.AlreadyCompleted, objective);
                 }
 
                 if (delta < 0 && objective.CurrentCount <= 0)
                 {
-                    // No hay progreso que quitar, pero tratar como no-op silencioso
+                    // No progress to remove, treat as a silent no-op
                     return TrackerUpdateResult.Ok(objective);
                 }
             }
@@ -410,6 +457,132 @@ namespace TarkovPriceViewer.Services
 
             Debug.WriteLine($"[TarkovTracker] Change objective {updated.ObjectiveId} for item {updated.ItemId}: {objective.CurrentCount} -> {updated.CurrentCount} (delta={delta})");
             return TrackerUpdateResult.Ok(updated);
+        }
+
+        private CurrentTrackedObjective SelectTaskObjectiveForDelta(Item item, Data tarkovData, int delta)
+        {
+            if (item == null || tarkovData == null || TrackerData == null || TrackerData.data == null)
+            {
+                return null;
+            }
+
+            var trackerData = TrackerData.data;
+            var usedInTasks = item.usedInTasks;
+            if (usedInTasks == null || usedInTasks.Count == 0)
+            {
+                return null;
+            }
+
+            // Order by ascending player level (earliest upgrade first)
+            var orderedTasks = usedInTasks
+                .Where(t => t.objectives != null)
+                .OrderBy(t => t.minPlayerLevel ?? int.MaxValue)
+                .ToList();
+
+            if (delta > 0)
+            {
+                // For +1: first task/objective that is not yet complete
+                foreach (var task in orderedTasks)
+                {
+                    // Saltar tasks completadas
+                    if (trackerData.tasksProgress != null &&
+                        trackerData.tasksProgress.Exists(e => e.id == task.id && e.complete == true))
+                        continue;
+
+                    foreach (var obj in task.objectives)
+                    {
+                        if (obj.type == "findItem" && obj.foundInRaid == true && obj.items != null && obj.items.Any(i => i.id == item.id))
+                        {
+                            int required = obj.count ?? 0;
+                            int current = 0;
+
+                            if (trackerData.taskObjectivesProgress != null && obj.id != null)
+                            {
+                                var progress = trackerData.taskObjectivesProgress.FirstOrDefault(p => p.id == obj.id);
+                                if (progress != null)
+                                {
+                                    if (progress.complete == true)
+                                    {
+                                        current = required;
+                                    }
+                                    else if (progress.count != null)
+                                    {
+                                        current = progress.count.Value;
+                                    }
+                                }
+                            }
+
+                            if (current < required)
+                            {
+                                return new CurrentTrackedObjective
+                                {
+                                    ObjectiveId = obj.id,
+                                    ItemId = item.id,
+                                    RequiredCount = required,
+                                    CurrentCount = current
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            else // delta < 0
+            {
+                // For -1: last task/objective (by ascending order) with progress > 0
+                for (int ti = orderedTasks.Count - 1; ti >= 0; ti--)
+                {
+                    var task = orderedTasks[ti];
+
+                    // Saltar tasks completadas si no tienen progreso parcial
+                    if (trackerData.tasksProgress != null &&
+                        trackerData.tasksProgress.Exists(e => e.id == task.id && e.complete == true))
+                    {
+                        // Aun así puede haber objetivos con count intermedio, comprobamos abajo
+                    }
+
+                    if (task.objectives == null)
+                        continue;
+
+                    for (int oi = task.objectives.Count - 1; oi >= 0; oi--)
+                    {
+                        var obj = task.objectives[oi];
+                        if (obj.type != "findItem" || obj.foundInRaid != true || obj.items == null || !obj.items.Any(i => i.id == item.id))
+                            continue;
+
+                        int required = obj.count ?? 0;
+                        int current = 0;
+
+                        if (trackerData.taskObjectivesProgress != null && obj.id != null)
+                        {
+                            var progress = trackerData.taskObjectivesProgress.FirstOrDefault(p => p.id == obj.id);
+                            if (progress != null)
+                            {
+                                if (progress.complete == true)
+                                {
+                                    current = required;
+                                }
+                                else if (progress.count != null)
+                                {
+                                    current = progress.count.Value;
+                                }
+                            }
+                        }
+
+                        if (current > 0)
+                        {
+                            return new CurrentTrackedObjective
+                            {
+                                ObjectiveId = obj.id,
+                                ItemId = item.id,
+                                RequiredCount = required,
+                                CurrentCount = current
+                            };
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
         public TrackerUpdateResult ApplyLocalChangeForCurrentItem(Item item, Data tarkovData, int delta)
@@ -430,11 +603,420 @@ namespace TarkovPriceViewer.Services
             {
                 if (!string.IsNullOrEmpty(updatedObjective.ObjectiveId))
                 {
-                    _pendingObjectives[updatedObjective.ObjectiveId] = updatedObjective;
+                    _pendingTaskObjectives[updatedObjective.ObjectiveId] = updatedObjective;
                 }
             }
 
+            // Persistir cambios locales de tasks
+            SaveLocalTasksState();
+
             return validation;
+        }
+
+        public TrackerUpdateResult ApplyLocalHideoutChangeForCurrentItem(Item item, Data tarkovData, int delta)
+        {
+            if (delta == 0)
+            {
+                return TrackerUpdateResult.Fail(TrackerUpdateFailureReason.NoObjectiveForItem);
+            }
+
+            var requirement = SelectHideoutRequirementForDelta(item, tarkovData, delta);
+            if (requirement == null || string.IsNullOrEmpty(requirement.ObjectiveId))
+            {
+                return TrackerUpdateResult.Fail(TrackerUpdateFailureReason.NoObjectiveForItem);
+            }
+
+            int newCount = requirement.CurrentCount + delta;
+            if (newCount < 0)
+            {
+                newCount = 0;
+            }
+            if (newCount > requirement.RequiredCount)
+            {
+                newCount = requirement.RequiredCount;
+            }
+
+            if (newCount == requirement.CurrentCount)
+            {
+                if (delta > 0 && requirement.CurrentCount >= requirement.RequiredCount)
+                {
+                    return TrackerUpdateResult.Fail(TrackerUpdateFailureReason.AlreadyCompleted, requirement);
+                }
+
+                if (delta < 0 && requirement.CurrentCount <= 0)
+                {
+                    return TrackerUpdateResult.Ok(requirement);
+                }
+            }
+
+            // In purely local mode, the extra counter is equal to the current value
+            int newExtra = newCount;
+
+            lock (_lockObject)
+            {
+                _localHideout[requirement.ObjectiveId] = newExtra;
+            }
+
+            var updated = new CurrentTrackedObjective
+            {
+                ObjectiveId = requirement.ObjectiveId,
+                ItemId = requirement.ItemId,
+                RequiredCount = requirement.RequiredCount,
+                CurrentCount = newCount
+            };
+
+            Debug.WriteLine($"[TarkovTracker] Local hideout change {updated.ObjectiveId} for item {updated.ItemId}: {requirement.CurrentCount} -> {updated.CurrentCount} (delta={delta})");
+
+            // Persist local hideout changes
+            SaveLocalHideoutState();
+            return TrackerUpdateResult.Ok(updated);
+        }
+
+        private class LocalObjectiveState
+        {
+            public string ObjectiveId { get; set; }
+            public string ItemId { get; set; }
+            public int RequiredCount { get; set; }
+            public int CurrentCount { get; set; }
+        }
+
+        private class LocalHideoutRequirementState
+        {
+            public string RequirementId { get; set; }
+            public int Count { get; set; }
+        }
+
+        private void SaveLocalTasksState()
+        {
+            try
+            {
+                List<LocalObjectiveState> objectives;
+                TarkovAPI.Data tarkovDataSnapshot = _tarkovDataService?.Data;
+
+                lock (_lockObject)
+                {
+                    objectives = _pendingTaskObjectives.Values
+                        .Select(o => new LocalObjectiveState
+                        {
+                            ObjectiveId = o.ObjectiveId,
+                            ItemId = o.ItemId,
+                            RequiredCount = o.RequiredCount,
+                            CurrentCount = o.CurrentCount
+                        })
+                        .ToList();
+                }
+
+                // Diccionarios auxiliares para nombres legibles
+                var objectiveInfo = new Dictionary<string, (string TaskName, string ObjectiveDescription)>();
+                var itemNames = new Dictionary<string, string>();
+
+                if (tarkovDataSnapshot?.items != null)
+                {
+                    foreach (var item in tarkovDataSnapshot.items)
+                    {
+                        if (!string.IsNullOrEmpty(item.id) && !itemNames.ContainsKey(item.id))
+                            itemNames[item.id] = item.name;
+
+                        if (item.usedInTasks == null)
+                            continue;
+
+                        foreach (var task in item.usedInTasks)
+                        {
+                            if (task.objectives == null)
+                                continue;
+
+                            foreach (var obj in task.objectives)
+                            {
+                                if (string.IsNullOrEmpty(obj.id))
+                                    continue;
+
+                                if (!objectiveInfo.ContainsKey(obj.id))
+                                {
+                                    objectiveInfo[obj.id] = (task.name, obj.description);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Proyección enriquecida para el JSON (los campos extra se ignoran al cargar)
+                var enrichedObjectives = objectives
+                    .Select(o =>
+                    {
+                        objectiveInfo.TryGetValue(o.ObjectiveId, out var info);
+                        itemNames.TryGetValue(o.ItemId, out var itemName);
+
+                        return new
+                        {
+                            o.ObjectiveId,
+                            o.ItemId,
+                            o.RequiredCount,
+                            o.CurrentCount,
+                            TaskName = info.TaskName,
+                            ObjectiveDescription = info.ObjectiveDescription,
+                            ItemName = itemName
+                        };
+                    })
+                    .ToList();
+
+                var json = JsonConvert.SerializeObject(new { Objectives = enrichedObjectives }, Formatting.Indented);
+                File.WriteAllText(LOCAL_TASKS_FILE, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[TarkovTracker] Error while saving local tasks state: " + ex.Message);
+            }
+        }
+
+        private void SaveLocalHideoutState()
+        {
+            try
+            {
+                List<LocalHideoutRequirementState> requirements;
+                TarkovAPI.Data tarkovDataSnapshot = _tarkovDataService?.Data;
+
+                lock (_lockObject)
+                {
+                    // Eliminamos de memoria los requirements con valor 0 para no acumular basura
+                    var keysToRemove = _localHideout.Where(kvp => kvp.Value <= 0).Select(kvp => kvp.Key).ToList();
+                    foreach (var key in keysToRemove)
+                    {
+                        _localHideout.Remove(key);
+                    }
+
+                    requirements = _localHideout
+                        .Where(kvp => kvp.Value > 0)
+                        .Select(kvp => new LocalHideoutRequirementState
+                        {
+                            RequirementId = kvp.Key,
+                            Count = kvp.Value
+                        })
+                        .ToList();
+                }
+
+                // Diccionario auxiliar para mapear requirementId a datos legibles
+                var hideoutInfo = new Dictionary<string, (string StationName, int? StationLevel, string ItemId, string ItemName, int RequiredCount)>();
+
+                if (tarkovDataSnapshot?.hideoutStations != null)
+                {
+                    foreach (var station in tarkovDataSnapshot.hideoutStations)
+                    {
+                        if (station.levels == null)
+                            continue;
+
+                        foreach (var level in station.levels)
+                        {
+                            if (level.itemRequirements == null)
+                                continue;
+
+                            foreach (var req in level.itemRequirements)
+                            {
+                                if (string.IsNullOrEmpty(req.id))
+                                    continue;
+
+                                string itemId = req.item?.id;
+                                string itemName = req.item?.name;
+                                int required = req.count ?? 0;
+
+                                hideoutInfo[req.id] = (station.name, level.level, itemId, itemName, required);
+                            }
+                        }
+                    }
+                }
+
+                var enrichedRequirements = requirements
+                    .Select(r =>
+                    {
+                        hideoutInfo.TryGetValue(r.RequirementId, out var info);
+
+                        return new
+                        {
+                            r.RequirementId,
+                            Count = r.Count,
+                            ItemId = info.ItemId,
+                            ItemName = info.ItemName,
+                            StationName = info.StationName,
+                            StationLevel = info.StationLevel,
+                            RequiredCount = info.RequiredCount
+                        };
+                    })
+                    .ToList();
+
+                var json = JsonConvert.SerializeObject(new { Requirements = enrichedRequirements }, Formatting.Indented);
+                File.WriteAllText(LOCAL_HIDEOUT_FILE, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[TarkovTracker] Error while saving local hideout state: " + ex.Message);
+            }
+        }
+
+        private void LoadLocalTasksState()
+        {
+            try
+            {
+                if (!File.Exists(LOCAL_TASKS_FILE))
+                    return;
+
+                var json = File.ReadAllText(LOCAL_TASKS_FILE);
+                var wrapper = JsonConvert.DeserializeObject<dynamic>(json);
+                var objectivesToken = wrapper?.Objectives;
+                if (objectivesToken == null)
+                    return;
+
+                var objectives = objectivesToken.ToObject<List<LocalObjectiveState>>();
+                if (objectives == null)
+                    return;
+
+                lock (_lockObject)
+                {
+                    _pendingTaskObjectives.Clear();
+                    foreach (var o in objectives)
+                    {
+                        if (string.IsNullOrEmpty(o.ObjectiveId))
+                            continue;
+
+                        _pendingTaskObjectives[o.ObjectiveId] = new CurrentTrackedObjective
+                        {
+                            ObjectiveId = o.ObjectiveId,
+                            ItemId = o.ItemId,
+                            RequiredCount = o.RequiredCount,
+                            CurrentCount = o.CurrentCount
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[TarkovTracker] Error while loading local tasks state: " + ex.Message);
+            }
+        }
+
+        private void LoadLocalHideoutState()
+        {
+            try
+            {
+                if (!File.Exists(LOCAL_HIDEOUT_FILE))
+                    return;
+
+                var json = File.ReadAllText(LOCAL_HIDEOUT_FILE);
+                var wrapper = JsonConvert.DeserializeObject<dynamic>(json);
+                var requirementsToken = wrapper?.Requirements;
+                if (requirementsToken == null)
+                    return;
+
+                var requirements = requirementsToken.ToObject<List<LocalHideoutRequirementState>>();
+                if (requirements == null)
+                    return;
+
+                lock (_lockObject)
+                {
+                    _localHideout.Clear();
+                    foreach (var r in requirements)
+                    {
+                        if (string.IsNullOrEmpty(r.RequirementId))
+                            continue;
+
+                        if (r.Count <= 0)
+                            continue;
+
+                        _localHideout[r.RequirementId] = r.Count;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[TarkovTracker] Error while loading local hideout state: " + ex.Message);
+            }
+        }
+
+        private CurrentTrackedObjective SelectHideoutRequirementForDelta(Item item, Data tarkovData, int delta)
+        {
+            if (item == null || tarkovData == null)
+            {
+                return null;
+            }
+
+            var hideoutStations = tarkovData.hideoutStations;
+            if (hideoutStations == null)
+            {
+                return null;
+            }
+
+            // Construimos una lista ordenada por nivel ascendente de todos los requirements de este item
+            var requirements = new List<(int level, string requirementId, int required, int current)>();
+
+            foreach (var station in hideoutStations)
+            {
+                if (station.levels == null)
+                    continue;
+
+                foreach (var stationLevel in station.levels)
+                {
+                    if (stationLevel.itemRequirements == null)
+                        continue;
+
+                    foreach (var itemReq in stationLevel.itemRequirements)
+                    {
+                        if (itemReq.item == null || itemReq.item.id != item.id)
+                            continue;
+
+                        int required = itemReq.count ?? 0;
+                        int extraLocal = GetLocalHideoutExtraCount(itemReq.id);
+                        int current = extraLocal;
+                        if (current > required)
+                            current = required;
+
+                        int levelValue = stationLevel.level ?? int.MaxValue;
+                        requirements.Add((levelValue, itemReq.id, required, current));
+                    }
+                }
+            }
+
+            if (requirements.Count == 0)
+            {
+                return null;
+            }
+
+            var ordered = requirements.OrderBy(r => r.level).ToList();
+
+            if (delta > 0)
+            {
+                // Para +1: primer requirement con hueco (current < required)
+                foreach (var r in ordered)
+                {
+                    if (r.current < r.required)
+                    {
+                        return new CurrentTrackedObjective
+                        {
+                            ObjectiveId = r.requirementId,
+                            ItemId = item.id,
+                            RequiredCount = r.required,
+                            CurrentCount = r.current
+                        };
+                    }
+                }
+            }
+            else // delta < 0
+            {
+                // Para -1: último requirement (por nivel asc) con progreso > 0
+                for (int i = ordered.Count - 1; i >= 0; i--)
+                {
+                    var r = ordered[i];
+                    if (r.current > 0)
+                    {
+                        return new CurrentTrackedObjective
+                        {
+                            ObjectiveId = r.requirementId,
+                            ItemId = item.id,
+                            RequiredCount = r.required,
+                            CurrentCount = r.current
+                        };
+                    }
+                }
+            }
+
+            return null;
         }
 
         public async Task<TrackerUpdateResult> IncrementObjectiveAndSyncAsync(Item item, Data tarkovData, CancellationToken cancellationToken = default)

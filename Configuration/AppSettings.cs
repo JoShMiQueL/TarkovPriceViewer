@@ -14,8 +14,8 @@ namespace TarkovPriceViewer.Configuration
         public int ShowOverlayKey { get; set; } = (int)Keys.F9;
         public int HideOverlayKey { get; set; } = (int)Keys.F10;
         public int CompareOverlayKey { get; set; } = (int)Keys.F8;
-        public int IncreaseTrackerCountKey { get; set; } = (int)Keys.F2;
-        public int DecreaseTrackerCountKey { get; set; } = (int)Keys.F1;
+        public int IncreaseTrackerCountKey { get; set; } = (int)Keys.Up;
+        public int DecreaseTrackerCountKey { get; set; } = (int)Keys.Down;
         public int OverlayTransparent { get; set; } = 80;
         public bool ShowLastPrice { get; set; } = true;
         public bool ShowDayPrice { get; set; } = true;

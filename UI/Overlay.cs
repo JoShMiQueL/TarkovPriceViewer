@@ -200,15 +200,15 @@ namespace TarkovPriceViewer.UI
 
                             StringBuilder sb = new StringBuilder();
 
-                            //Loot Tier
+                            // Loot tier
                             SetLootTierPerSlot(item);
                             if (item.lootTier != null)
                                 sb.Append(String.Format("{0}", item.lootTier));
 
-                            //Name
+                            // Name
                             sb.Append(String.Format("\n{0}", item.name));
 
-                            //Helmet/Armour Class
+                            // Helmet/armour class
                             if (item.properties != null && item.properties._class != null)
                             {
                                 item.className = "Class " + item.properties._class.Value;
@@ -216,7 +216,7 @@ namespace TarkovPriceViewer.UI
                                     sb.Append(String.Format("\n{0}\n", item.className));
                             }
 
-                            //Key Info
+                            // Key info
                             if (item.types.Any(e => e.Equals("keys")) && item.wikiLink != null)
                             {
                                 string lockLocation = FindKeyInfo(item);
@@ -227,14 +227,14 @@ namespace TarkovPriceViewer.UI
                                 }
                             }
 
-                            //Find Flea Market profit
+                            // Find Flea Market profit
                             int flea_profit = 0;
                             if (item.lastLowPrice != null && item.fleaMarketFee != null)
                             {
                                 flea_profit = item.lastLowPrice.Value - item.fleaMarketFee.Value;
                             }
 
-                            //Find best trader to sell to
+                            // Find best trader to sell to
                             if (item.sellFor.Count > 0)
                             {
                                 List<SellFor> list = new List<SellFor>(item.sellFor);
@@ -270,7 +270,7 @@ namespace TarkovPriceViewer.UI
                                 }
                             }
 
-                            //Find best trader to buy from
+                            // Find best trader to buy from
                             if (item.buyFor.Count > 0)
                             {
                                 List<BuyFor> list = new List<BuyFor>(item.buyFor);
@@ -361,8 +361,8 @@ namespace TarkovPriceViewer.UI
                                     if (trackerData == null || trackerData.data == null)
                                         continue;
 
-                                    // Skip completed tasks entirely
-                                    if (trackerData.data.tasksProgress != null && trackerData.data.tasksProgress.Any(e => e.id.Equals(task.id)))
+                                    // Skip tasks that are actually completed according to TarkovTracker
+                                    if (trackerData.data.tasksProgress != null && trackerData.data.tasksProgress.Any(e => e.id == task.id && e.complete == true))
                                         continue;
 
                                     string task1 = "";
@@ -414,9 +414,10 @@ namespace TarkovPriceViewer.UI
 
                                     int totalRequiredForTask = totalNeededForTask + totalHaveForTask;
 
-                                    if (totalRequiredForTask > 0)
+                                    // If this task no longer needs anything (needed == 0), do not show it
+                                    if (totalRequiredForTask > 0 && totalNeededForTask > 0)
                                     {
-                                        // Mostrar tanto lo que llevas como lo que necesitas para esta task
+                                        // Show both what you have and what you need for this task
                                         if (totalHaveForTask > 0 || totalNeededForTask > 0)
                                         {
                                             task1 += " (" + totalHaveForTask + "/" + totalRequiredForTask + ")";
@@ -436,18 +437,12 @@ namespace TarkovPriceViewer.UI
                                         }
                                     }
                                 }
-                                if (tasks != "")
+                                // Only show the section if there is still something pending for at least one task
+                                if (tasks != "" && grandTotalNeeded > 0)
                                 {
                                     sb = RemoveTrailingLineBreaks(sb);
 
-                                    if (grandTotalNeeded > 0 || grandTotalHave > 0)
-                                    {
-                                        sb.Append(String.Format("\n\nUsed in Task (You have: {0}, Needed: {1}):\n{2}", grandTotalHave, grandTotalNeeded, tasks));
-                                    }
-                                    else
-                                    {
-                                        sb.Append(String.Format("\n\nUsed in Task:\n{0}", tasks));
-                                    }
+                                    sb.Append(String.Format("\n\nUsed in Task (You have: {0}, Needed: {1}):\n{2}", grandTotalHave, grandTotalNeeded, tasks));
                                 }
                             }
                             else if (_settingsService?.Settings.Needs == true && item.usedInTasks.Count > 0 && !_settingsService.Settings.UseTarkovTrackerApi && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
@@ -490,62 +485,8 @@ namespace TarkovPriceViewer.UI
                                     sb.Append(String.Format("\n\nUsed in Task:\n{0}", tasks));
                             }
 
-                            //Hideout Upgrades
-                            if (!string.IsNullOrWhiteSpace(_settingsService?.Settings.TarkovTrackerApiKey) && _settingsService.Settings.UseTarkovTrackerApi && _settingsService.Settings.ShowHideoutUpgrades)
-                            {
-                                var hideoutStations = _tarkovDataService?.Data?.hideoutStations;
-                                var trackerData = _tarkovTrackerService?.TrackerData;
-
-                                if (item.name != "Roubles" && hideoutStations != null && trackerData != null && trackerData.data != null)
-                                {
-                                    var upgradesList = new List<hideoutUpgrades>();
-                                    string upgrades = "";
-                                    int grandTotal = 0;
-                                    foreach (var station in hideoutStations)
-                                    {
-                                        foreach (var stationLevel in station.levels)
-                                        {
-                                            foreach (var itemReq in stationLevel.itemRequirements)
-                                            {
-                                                if (item.id == itemReq.item.id && trackerData.data.hideoutModulesProgress != null && !trackerData.data.hideoutModulesProgress.Any(e => e.id.Equals(stationLevel.id)))
-                                                {
-                                                    int count = itemReq.count ?? 0;
-                                                    if (trackerData.data.hideoutPartsProgress != null && itemReq.id != null)
-                                                    {
-                                                        var progress = trackerData.data.hideoutPartsProgress.FirstOrDefault(p => p.id == itemReq.id);
-                                                        if (progress != null)
-                                                        {
-                                                            if (progress.complete == true)
-                                                                count = 0;
-                                                            else if (progress.count != null)
-                                                                count -= progress.count.Value;
-                                                        }
-                                                    }
-                                                    if (count < 0) count = 0;
-                                                    if (count > 0)
-                                                    {
-                                                        upgradesList.Add(new hideoutUpgrades() { Name = station.name, Level = stationLevel.level, Count = count });
-                                                        grandTotal += count;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    if (upgradesList.Count > 0)
-                                    {
-                                        var sortedUpgradesList = new List<hideoutUpgrades>(upgradesList.OrderBy(p => p.Level));
-
-                                        foreach (var upgrade in sortedUpgradesList)
-                                        {
-                                            upgrades += "[Level " + upgrade.Level + "] " + upgrade.Name + " (x" + upgrade.Count + ")\n";
-                                        }
-
-                                        sb = RemoveTrailingLineBreaks(sb);
-                                        sb.Append(String.Format("\n\nNeeded for Hideout (Total: {0}):\n{1}", grandTotal, upgrades));
-                                    }
-                                }
-                            }
-                            else if (_settingsService?.Settings.ShowHideoutUpgrades == true)
+                            // Hideout upgrades (purely local, without using API progress)
+                            if (_settingsService?.Settings.ShowHideoutUpgrades == true)
                             {
                                 var hideoutStations = _tarkovDataService?.Data?.hideoutStations;
 
@@ -562,9 +503,16 @@ namespace TarkovPriceViewer.UI
                                             {
                                                 if (item.id == itemReq.item.id)
                                                 {
-                                                    int count = itemReq.count ?? 0;
-                                                    upgradesList.Add(new hideoutUpgrades() { Name = station.name, Level = stationLevel.level, Count = count });
-                                                    grandTotal += count;
+                                                    int required = itemReq.count ?? 0;
+                                                    int extraLocal = _tarkovTrackerService?.GetLocalHideoutExtraCount(itemReq.id) ?? 0;
+                                                    int count = required - extraLocal;
+                                                    if (count < 0) count = 0;
+
+                                                    if (count > 0)
+                                                    {
+                                                        upgradesList.Add(new hideoutUpgrades() { Name = station.name, Level = stationLevel.level, Count = count });
+                                                        grandTotal += count;
+                                                    }
                                                 }
                                             }
                                         }
@@ -716,8 +664,13 @@ namespace TarkovPriceViewer.UI
                     return;
                 }
 
-                // Aplicar un incremento local inmediato; el servicio se encarga de hacer flush a la API
+                // Apply an immediate local increment. Try tasks first; if none, fall back to hideout (local only)
                 var result = _tarkovTrackerService.ApplyLocalChangeForCurrentItem(_currentItem, data, +1);
+                if (!result.Success && (result.FailureReason == TrackerUpdateFailureReason.NoObjectiveForItem || result.FailureReason == TrackerUpdateFailureReason.AlreadyCompleted))
+                {
+                    result = _tarkovTrackerService.ApplyLocalHideoutChangeForCurrentItem(_currentItem, data, +1);
+                }
+
                 Debug.WriteLine($"[Overlay] Tracker local update result (delta=1): Success={result.Success}, Reason={result.FailureReason}, Remaining={result.Objective?.Remaining}");
 
                 if (result.Success)
@@ -749,8 +702,13 @@ namespace TarkovPriceViewer.UI
                     return;
                 }
 
-                // Aplicar un decremento local inmediato; el servicio se encarga de hacer flush a la API
+                // Apply an immediate local decrement. Try tasks first; if none, fall back to hideout (local only)
                 var result = _tarkovTrackerService.ApplyLocalChangeForCurrentItem(_currentItem, data, -1);
+                if (!result.Success && (result.FailureReason == TrackerUpdateFailureReason.NoObjectiveForItem || result.FailureReason == TrackerUpdateFailureReason.AlreadyCompleted))
+                {
+                    result = _tarkovTrackerService.ApplyLocalHideoutChangeForCurrentItem(_currentItem, data, -1);
+                }
+
                 Debug.WriteLine($"[Overlay] Tracker local update result (delta=-1): Success={result.Success}, Reason={result.FailureReason}, Remaining={result.Objective?.Remaining}");
 
                 if (result.Success)
@@ -976,7 +934,7 @@ namespace TarkovPriceViewer.UI
 
         public void setCraftColorAPI(Item item)
         {
-            //MatchCollection mc = new Regex(Regex.Escape(item.name)).Matches(iteminfo_text.Text);
+            // MatchCollection mc = new Regex(Regex.Escape(item.name)).Matches(iteminfo_text.Text);
             MatchCollection mc = new Regex(Regex.Escape(item.name)).Matches(iteminfo_text.Text);
 
             foreach (Match m in mc)
@@ -1183,7 +1141,7 @@ namespace TarkovPriceViewer.UI
             {
                 if (!cts_one.IsCancellationRequested)
                 {
-                    //waitinfForTooltipText = Program.waitingForTooltip;
+                    // waitinfForTooltipText = Program.waitingForTooltip;
                     iteminfo_ball.Rows.Clear();
                     iteminfo_ball.Visible = false;
                     iteminfo_text.Text = MainForm.languageModel == null ? Program.languageLoading : Program.waitingForTooltip;
