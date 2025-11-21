@@ -88,6 +88,10 @@ namespace TarkovPriceViewer.UI
 			languageBox = new System.Windows.Forms.ComboBox();
 			label3 = new System.Windows.Forms.Label();
 			modeBox = new System.Windows.Forms.ComboBox();
+			IncreaseTrackerCountButton = new System.Windows.Forms.Button();
+			label4 = new System.Windows.Forms.Label();
+			label5 = new System.Windows.Forms.Label();
+			DecreaseTrackerCountButton = new System.Windows.Forms.Button();
 			TrayMenu.SuspendLayout();
 			panel1.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)worthThresholdNumeric).BeginInit();
@@ -523,7 +527,7 @@ namespace TarkovPriceViewer.UI
 			// 
 			pictureBox1.BackColor = System.Drawing.Color.Transparent;
 			pictureBox1.Image = Properties.Resources.title;
-			pictureBox1.Location = new System.Drawing.Point(108, 14);
+			pictureBox1.Location = new System.Drawing.Point(128, 14);
 			pictureBox1.Margin = new System.Windows.Forms.Padding(4);
 			pictureBox1.Name = "pictureBox1";
 			pictureBox1.Size = new System.Drawing.Size(350, 50);
@@ -612,6 +616,7 @@ namespace TarkovPriceViewer.UI
 			CompareOverlay_Desc2.TabIndex = 0;
 			CompareOverlay_Desc2.Text = "※ Experiential";
 			// 
+			// 
 			// panel7
 			// 
 			panel7.Controls.Add(RandomItem);
@@ -664,6 +669,10 @@ namespace TarkovPriceViewer.UI
 			// 
 			// panel8
 			// 
+			panel8.Controls.Add(label5);
+			panel8.Controls.Add(DecreaseTrackerCountButton);
+			panel8.Controls.Add(label4);
+			panel8.Controls.Add(IncreaseTrackerCountButton);
 			panel8.Controls.Add(TarkovTrackerCheckBox);
 			panel8.Controls.Add(label2);
 			panel8.Controls.Add(tarkovTrackerApiKey_textbox);
@@ -672,7 +681,7 @@ namespace TarkovPriceViewer.UI
 			panel8.Location = new System.Drawing.Point(316, 352);
 			panel8.Margin = new System.Windows.Forms.Padding(4);
 			panel8.Name = "panel8";
-			panel8.Size = new System.Drawing.Size(296, 98);
+			panel8.Size = new System.Drawing.Size(296, 161);
 			panel8.TabIndex = 17;
 			// 
 			// TarkovTrackerCheckBox
@@ -747,6 +756,52 @@ namespace TarkovPriceViewer.UI
 			modeBox.Name = "modeBox";
 			modeBox.Size = new System.Drawing.Size(69, 23);
 			modeBox.TabIndex = 20;
+			// 
+			// IncreaseTrackerCountButton (configura hotkey +1 Item Found)
+			// 
+			IncreaseTrackerCountButton.Location = new System.Drawing.Point(153, 99);
+			IncreaseTrackerCountButton.Margin = new System.Windows.Forms.Padding(4);
+			IncreaseTrackerCountButton.Name = "IncreaseTrackerCountButton";
+			IncreaseTrackerCountButton.Size = new System.Drawing.Size(128, 29);
+			IncreaseTrackerCountButton.TabIndex = 17;
+			IncreaseTrackerCountButton.TabStop = false;
+			IncreaseTrackerCountButton.Text = "F2";
+			IncreaseTrackerCountButton.UseVisualStyleBackColor = true;
+			IncreaseTrackerCountButton.Click += Overlay_Button_Click;
+			// 
+			// label4
+			// 
+			label4.AutoSize = true;
+			label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 129);
+			label4.Location = new System.Drawing.Point(15, 104);
+			label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			label4.Name = "label4";
+			label4.Size = new System.Drawing.Size(99, 15);
+			label4.TabIndex = 18;
+			label4.Text = "+1 Item Found";
+			// 
+			// label5
+			// 
+			label5.AutoSize = true;
+			label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 129);
+			label5.Location = new System.Drawing.Point(17, 137);
+			label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			label5.Name = "label5";
+			label5.Size = new System.Drawing.Size(96, 15);
+			label5.TabIndex = 20;
+			label5.Text = "-1 Item Found";
+			// 
+			// DecreaseTrackerCountButton (configura hotkey -1 Item Found)
+			// 
+			DecreaseTrackerCountButton.Location = new System.Drawing.Point(153, 132);
+			DecreaseTrackerCountButton.Margin = new System.Windows.Forms.Padding(4);
+			DecreaseTrackerCountButton.Name = "DecreaseTrackerCountButton";
+			DecreaseTrackerCountButton.Size = new System.Drawing.Size(128, 29);
+			DecreaseTrackerCountButton.TabIndex = 19;
+			DecreaseTrackerCountButton.TabStop = false;
+			DecreaseTrackerCountButton.Text = "F1";
+			DecreaseTrackerCountButton.UseVisualStyleBackColor = true;
+			DecreaseTrackerCountButton.Click += Overlay_Button_Click;
 			// 
 			// MainForm
 			// 
@@ -861,6 +916,9 @@ namespace TarkovPriceViewer.UI
         private System.Windows.Forms.ComboBox languageBox;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.ComboBox modeBox;
+        private System.Windows.Forms.Button IncreaseTrackerCountButton;
+        private System.Windows.Forms.Button DecreaseTrackerCountButton;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label label4;
     }
 }
-
