@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.IO;
 using System.Collections.Generic;
+using System.Windows.Forms;
 
 namespace TarkovPriceViewer.Configuration
 {
@@ -10,9 +11,11 @@ namespace TarkovPriceViewer.Configuration
         public bool MinimizeToTrayOnStartup { get; set; } = false;
         public bool CloseOverlayWhenMouseMoved { get; set; } = true;
         public bool RandomItem { get; set; } = false;
-        public int ShowOverlayKey { get; set; } = 120; // F9
-        public int HideOverlayKey { get; set; } = 121; // F10
-        public int CompareOverlayKey { get; set; } = 119; // F8
+        public int ShowOverlayKey { get; set; } = (int)Keys.F9;
+        public int HideOverlayKey { get; set; } = (int)Keys.F10;
+        public int CompareOverlayKey { get; set; } = (int)Keys.F8;
+        public int IncreaseTrackerCountKey { get; set; } = (int)Keys.F2;
+        public int DecreaseTrackerCountKey { get; set; } = (int)Keys.F1;
         public int OverlayTransparent { get; set; } = 80;
         public bool ShowLastPrice { get; set; } = true;
         public bool ShowDayPrice { get; set; } = true;

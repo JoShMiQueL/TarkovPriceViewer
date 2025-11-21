@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using static TarkovPriceViewer.Models.TarkovAPI;
 using Item = TarkovPriceViewer.Models.TarkovAPI.Item;
@@ -40,6 +41,8 @@ namespace TarkovPriceViewer.UI
         private static int DotsCounter = 0;
 
         private Object _lock = new Object();
+
+        private Item _currentItem;
 
         private static readonly Dictionary<string, string> LootTierByName = Models.LootTierMapping.ByName;
 
@@ -188,6 +191,7 @@ namespace TarkovPriceViewer.UI
                         }
                         else
                         {
+                            _currentItem = item;
                             Debug.WriteLine("Market Link: " + item.link);
 
                             string mainCurrency = Program.rouble.ToString();
@@ -348,7 +352,8 @@ namespace TarkovPriceViewer.UI
                             if (_settingsService?.Settings.Needs == true && item.usedInTasks.Count > 0 && _settingsService.Settings.UseTarkovTrackerApi && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
                             {
                                 string tasks = "";
-                                int grandTotal = 0;
+                                int grandTotalNeeded = 0;
+                                int grandTotalHave = 0;
                                 var list = item.usedInTasks.OrderBy(p => p.minPlayerLevel);
                                 foreach (var task in list)
                                 {
@@ -367,50 +372,82 @@ namespace TarkovPriceViewer.UI
                                     if (task.map != null)
                                         task1 += " [" + task.map.name + "]";
 
-                                    int totalCount = 0;
+                                    int totalNeededForTask = 0;
+                                    int totalHaveForTask = 0;
                                     if (task.objectives != null)
                                     {
                                         foreach (var obj in task.objectives)
                                         {
-                                            if (obj.type == "giveItem" && obj.foundInRaid == true && obj.items != null && obj.items.Any(i => i.id == item.id))
+                                            if (obj.type == "findItem" && obj.foundInRaid == true && obj.items != null && obj.items.Any(i => i.id == item.id))
                                             {
-                                                int needed = obj.count ?? 0;
+                                                int required = obj.count ?? 0;
+                                                int needed = required;
+                                                int have = 0;
+
                                                 if (trackerData.data.taskObjectivesProgress != null && obj.id != null)
                                                 {
                                                     var progress = trackerData.data.taskObjectivesProgress.FirstOrDefault(p => p.id == obj.id);
                                                     if (progress != null)
                                                     {
                                                         if (progress.complete == true)
+                                                        {
                                                             needed = 0;
+                                                            have = required;
+                                                        }
                                                         else if (progress.count != null)
-                                                            needed -= progress.count.Value;
+                                                        {
+                                                            needed = required - progress.count.Value;
+                                                            if (needed < 0) needed = 0;
+                                                            have = required - needed;
+                                                        }
                                                     }
                                                 }
+
                                                 if (needed < 0) needed = 0;
-                                                totalCount += needed;
+                                                if (have < 0) have = 0;
+
+                                                totalNeededForTask += needed;
+                                                totalHaveForTask += have;
                                             }
                                         }
                                     }
 
-                                    if (totalCount > 0)
+                                    int totalRequiredForTask = totalNeededForTask + totalHaveForTask;
+
+                                    if (totalRequiredForTask > 0)
                                     {
-                                        task1 += " (x" + totalCount + ")";
+                                        // Mostrar tanto lo que llevas como lo que necesitas para esta task
+                                        if (totalHaveForTask > 0 || totalNeededForTask > 0)
+                                        {
+                                            task1 += " (" + totalHaveForTask + "/" + totalRequiredForTask + ")";
+                                            if (totalNeededForTask > 0)
+                                            {
+                                                task1 += " (x" + totalNeededForTask + ")";
+                                            }
+                                        }
+
                                         task1 += "\n";
 
                                         if (!tasks.Contains(task1))
                                         {
                                             tasks += task1;
-                                            grandTotal += totalCount;
+                                            grandTotalNeeded += totalNeededForTask;
+                                            grandTotalHave += totalHaveForTask;
                                         }
                                     }
                                 }
                                 if (tasks != "")
                                 {
                                     sb = RemoveTrailingLineBreaks(sb);
-                                    if (grandTotal > 0)
-                                        sb.Append(String.Format("\n\nUsed in Task (Total: {0}):\n{1}", grandTotal, tasks));
+
+                                    if (grandTotalNeeded > 0 || grandTotalHave > 0)
+                                    {
+                                        sb.Append(String.Format("\n\nUsed in Task (You have: {0}, Needed: {1}):\n{2}", grandTotalHave, grandTotalNeeded, tasks));
+                                    }
                                     else
+                                    {
                                         sb.Append(String.Format("\n\nUsed in Task:\n{0}", tasks));
+                                    }
                                 }
                             }
                             else if (_settingsService?.Settings.Needs == true && item.usedInTasks.Count > 0 && !_settingsService.Settings.UseTarkovTrackerApi && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
@@ -667,6 +704,72 @@ namespace TarkovPriceViewer.UI
                 }
             };
             Invoke(show);
+        }
+
+        public void IncrementCurrentItemCount()
+        {
+            try
+            {
+                var data = _tarkovDataService?.Data;
+                if (data == null || _currentItem == null)
+                {
+                    return;
+                }
+
+                // Aplicar un incremento local inmediato; el servicio se encarga de hacer flush a la API
+                var result = _tarkovTrackerService.ApplyLocalChangeForCurrentItem(_currentItem, data, +1);
+                Debug.WriteLine($"[Overlay] Tracker local update result (delta=1): Success={result.Success}, Reason={result.FailureReason}, Remaining={result.Objective?.Remaining}");
+
+                if (result.Success)
+                {
+                    try
+                    {
+                        var token = CancellationToken.None;
+                        Invoke(new Action(() => ShowInfoAPI(_currentItem, token)));
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("[Overlay] Error while refreshing overlay after tracker update: " + ex.Message);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[Overlay] Error while incrementing objective: " + ex.Message);
+            }
+        }
+
+        public void DecrementCurrentItemCount()
+        {
+            try
+            {
+                var data = _tarkovDataService?.Data;
+                if (data == null || _currentItem == null)
+                {
+                    return;
+                }
+
+                // Aplicar un decremento local inmediato; el servicio se encarga de hacer flush a la API
+                var result = _tarkovTrackerService.ApplyLocalChangeForCurrentItem(_currentItem, data, -1);
+                Debug.WriteLine($"[Overlay] Tracker local update result (delta=-1): Success={result.Success}, Reason={result.FailureReason}, Remaining={result.Objective?.Remaining}");
+
+                if (result.Success)
+                {
+                    try
+                    {
+                        var token = CancellationToken.None;
+                        Invoke(new Action(() => ShowInfoAPI(_currentItem, token)));
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("[Overlay] Error while refreshing overlay after tracker update: " + ex.Message);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[Overlay] Error while decrementing objective: " + ex.Message);
+            }
         }
 
         private decimal? GetValuePerSlot(Item item, decimal? priceOverride = null)

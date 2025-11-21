@@ -43,6 +43,12 @@ namespace TarkovPriceViewer.UI
                         case 3:
                             Program.AppSettings.CompareOverlayKey = (int)e.KeyCode;
                             break;
+                        case 4:
+                            Program.AppSettings.IncreaseTrackerCountKey = (int)e.KeyCode;
+                            break;
+                        case 5:
+                            Program.AppSettings.DecreaseTrackerCountKey = (int)e.KeyCode;
+                            break;
                     }
                     if (Owner != null)
                     {
@@ -88,6 +94,12 @@ namespace TarkovPriceViewer.UI
                         break;
                     case 3:
                         Program.AppSettings.CompareOverlayKey = mouseCode;
+                        break;
+                    case 4:
+                        Program.AppSettings.IncreaseTrackerCountKey = mouseCode;
+                        break;
+                    case 5:
+                        Program.AppSettings.DecreaseTrackerCountKey = mouseCode;
                         break;
                 }
 

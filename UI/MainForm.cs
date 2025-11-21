@@ -231,6 +231,8 @@ namespace TarkovPriceViewer.UI
 			ShowOverlay_Button.Text = GetKeybindText(s.ShowOverlayKey.ToString(CultureInfo.InvariantCulture));
 			HideOverlay_Button.Text = GetKeybindText(s.HideOverlayKey.ToString(CultureInfo.InvariantCulture));
 			CompareOverlay_Button.Text = GetKeybindText(s.CompareOverlayKey.ToString(CultureInfo.InvariantCulture));
+			IncreaseTrackerCountButton.Text = GetKeybindText(s.IncreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
+			DecreaseTrackerCountButton.Text = GetKeybindText(s.DecreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
 			TransParent_Bar.Value = s.OverlayTransparent;
 			TransParent_Text.Text = s.OverlayTransparent.ToString(CultureInfo.InvariantCulture) + "%";
 			TarkovTrackerCheckBox.Checked = s.UseTarkovTrackerApi;
@@ -370,6 +372,8 @@ namespace TarkovPriceViewer.UI
 				int showKey = Program.AppSettings.ShowOverlayKey;
 				int compareKey = Program.AppSettings.CompareOverlayKey;
 				int hideKey = Program.AppSettings.HideOverlayKey;
+				int increaseTrackerKey = Program.AppSettings.IncreaseTrackerCountKey;
+				int decreaseTrackerKey = Program.AppSettings.DecreaseTrackerCountKey;
 
 				if (code == showKey)
 				{
@@ -391,6 +395,14 @@ namespace TarkovPriceViewer.UI
 				{
 					point = Control.MousePosition;
 					LoadingItemCompare();
+				}
+				else if (code == increaseTrackerKey && increaseTrackerKey != 0)
+				{
+					overlay_info.IncrementCurrentItemCount();
+				}
+				else if (code == decreaseTrackerKey && decreaseTrackerKey != 0)
+				{
+					overlay_info.DecrementCurrentItemCount();
 				}
 				else if (code == hideKey
 					|| code == 9 //tab
@@ -923,6 +935,8 @@ namespace TarkovPriceViewer.UI
 					ShowOverlay_Button.Text = GetKeybindText(s.ShowOverlayKey.ToString(CultureInfo.InvariantCulture));
 					HideOverlay_Button.Text = GetKeybindText(s.HideOverlayKey.ToString(CultureInfo.InvariantCulture));
 					CompareOverlay_Button.Text = GetKeybindText(s.CompareOverlayKey.ToString(CultureInfo.InvariantCulture));
+					IncreaseTrackerCountButton.Text = GetKeybindText(s.IncreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
+					DecreaseTrackerCountButton.Text = GetKeybindText(s.DecreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
 				}
 				press_key_control = null;
 			}
@@ -943,6 +957,14 @@ namespace TarkovPriceViewer.UI
 			else if (press_key_control == CompareOverlay_Button)
 			{
 				selected = 3;
+			}
+			else if (press_key_control == IncreaseTrackerCountButton)
+			{
+				selected = 4;
+			}
+			else if (press_key_control == DecreaseTrackerCountButton)
+			{
+				selected = 5;
 			}
 			if (selected != 0)
 			{
