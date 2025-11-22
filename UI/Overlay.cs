@@ -379,7 +379,7 @@ namespace TarkovPriceViewer.UI
                             if (_settingsService?.Settings.ShowLastPrice == true && item.lastLowPrice != null)
                             {
                                 sb = RemoveTrailingLineBreaks(sb);
-                                string priceLabel = "Price:";
+                                string priceLabel = "Price";
                                 string priceTabs = GetTabsForLabel(priceLabel);
                                 int lastPrice = (int)item.lastLowPrice;
                                 string lastPricePerSlot = GetPricePerSlotDetails(item, lastPrice, mainCurrency);
@@ -393,7 +393,7 @@ namespace TarkovPriceViewer.UI
 
                             if (_settingsService?.Settings.ShowDayPrice == true && item.avg24hPrice != null && item.avg24hPrice.Value > 0)
                             {
-                                string dayLabel = "Avg. Day Price:";
+                                string dayLabel = "Avg. Day Price";
                                 string dayTabs = GetTabsForLabel(dayLabel);
                                 int avgDay = item.avg24hPrice.Value;
                                 string avgDayPerSlot = GetPricePerSlotDetails(item, avgDay, mainCurrency);
@@ -419,27 +419,92 @@ namespace TarkovPriceViewer.UI
                                 int baseFleaBulletPrice = flea_profit; // approximate per round after flea fee
                                 int[] stackExamples = new[] { 1, 10, 30, 60 };
 
-                                sb.Append("\n\nAmmo examples:");
+                                // First compute all values so we can align columns (Flea and Trader) by width
+                                var ammoExamples = new List<(int Count, int FleaTotal, int? TraderTotal)>();
+
                                 foreach (int count in stackExamples)
                                 {
                                     int fleaTotal = baseFleaBulletPrice * count;
+                                    int? traderTotal = null;
 
                                     if (bestTraderAmmoPrice.HasValue && bestTraderAmmoPrice.Value > 0)
                                     {
-                                        int traderTotal = bestTraderAmmoPrice.Value * count;
-                                        sb.Append(String.Format("\n  x{0}: {1}{2} (Flea, after fee) | {3}{4} (Trader)",
-                                            count,
-                                            fleaTotal.ToString("N0"),
-                                            mainCurrency,
-                                            traderTotal.ToString("N0"),
-                                            mainCurrency));
+                                        traderTotal = bestTraderAmmoPrice.Value * count;
                                     }
-                                    else
+
+                                    ammoExamples.Add((count, fleaTotal, traderTotal));
+                                }
+
+                                // Build formatted segments and determine padding widths (pixel-based)
+                                var formatted = new List<(string XLabel, string FleaSegment, string TraderSegment)>();
+
+                                using (var g = iteminfo_text.CreateGraphics())
+                                {
+                                    var font = iteminfo_text.Font;
+                                    int maxFleaWidth = 0;
+                                    int maxTraderWidth = 0;
+
+                                    // First pass: build base segments and measure widths
+                                    foreach (var ex in ammoExamples)
                                     {
-                                        sb.Append(String.Format("\n  x{0}: {1}{2} (Flea, after fee)",
-                                            count,
-                                            fleaTotal.ToString("N0"),
-                                            mainCurrency));
+                                        string xLabel = ex.Count == 1
+                                            ? "x1:   "
+                                            : "x" + ex.Count + ": ";
+
+                                        string fleaPrice = String.Format("{0}{1}", ex.FleaTotal.ToString("N0"), mainCurrency);
+                                        string fleaSegment = fleaPrice + "  (Flea, after fee)"; // 2 spaces before '('
+
+                                        string traderSegment = null;
+                                        if (ex.TraderTotal.HasValue)
+                                        {
+                                            string traderPrice = String.Format("{0}{1}", ex.TraderTotal.Value.ToString("N0"), mainCurrency);
+                                            traderSegment = traderPrice + "  (Trader)"; // 2 spaces before '('
+                                        }
+
+                                        int fleaWidth = TextRenderer.MeasureText(g, fleaSegment, font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width;
+                                        if (fleaWidth > maxFleaWidth)
+                                            maxFleaWidth = fleaWidth;
+
+                                        int traderWidth = 0;
+                                        if (traderSegment != null)
+                                        {
+                                            traderWidth = TextRenderer.MeasureText(g, traderSegment, font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width;
+                                            if (traderWidth > maxTraderWidth)
+                                                maxTraderWidth = traderWidth;
+                                        }
+
+                                        formatted.Add((xLabel, fleaSegment, traderSegment));
+                                    }
+
+                                    // Second pass: pad with spaces until pixel widths match the max, so columns line up visually
+                                    sb.Append("\n\nAmmo examples:");
+                                    foreach (var row in formatted)
+                                    {
+                                        string fleaPadded = row.FleaSegment;
+                                        while (TextRenderer.MeasureText(g, fleaPadded, font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width < maxFleaWidth)
+                                        {
+                                            fleaPadded += " ";
+                                        }
+
+                                        if (row.TraderSegment != null && maxTraderWidth > 0)
+                                        {
+                                            string traderPadded = row.TraderSegment;
+                                            while (TextRenderer.MeasureText(g, traderPadded, font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width < maxTraderWidth)
+                                            {
+                                                traderPadded += " ";
+                                            }
+
+                                            sb.Append(String.Format("\n  {0}{1} | {2}",
+                                                row.XLabel,
+                                                fleaPadded,
+                                                traderPadded));
+                                        }
+                                        else
+                                        {
+                                            sb.Append(String.Format("\n  {0}{1}",
+                                                row.XLabel,
+                                                fleaPadded));
+                                        }
                                     }
                                 }
                             }
@@ -1392,6 +1457,17 @@ namespace TarkovPriceViewer.UI
             foreach (var text in darkOrange)
             {
                 mc = new Regex(Regex.Escape(text)).Matches(iteminfo_text.Text);
+                foreach (Match m in mc)
+                {
+                    iteminfo_text.Select(m.Index, m.Length);
+                    iteminfo_text.SelectionColor = Color.DarkOrange;
+                }
+            }
+
+            // Highlight ammo example labels (x1:, x10:, etc.) for better readability
+            if (item.types != null && item.types.Exists(t => t == "ammo"))
+            {
+                mc = new Regex(@"\bx(1|10|30|60):").Matches(iteminfo_text.Text);
                 foreach (Match m in mc)
                 {
                     iteminfo_text.Select(m.Index, m.Length);
