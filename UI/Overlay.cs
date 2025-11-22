@@ -1006,9 +1006,9 @@ namespace TarkovPriceViewer.UI
                 case "C":
                     return "Good";
                 case "D":
-                    return "Decent";
+                    return "Average";
                 case "E":
-                    return "Poor";
+                    return "Bad";
                 default: // "F" or anything else
                     return "Trash";
             }
@@ -1107,9 +1107,10 @@ namespace TarkovPriceViewer.UI
 
             setOthersColorAPI(item);
             setCraftColorAPI(item);
-            setLootTierColorAPI(item);
             setClassTierColorAPI(item);
             setWorthHighlightAPI(item);
+            setLootTierColorAPI(item);
+            setAmmoTierColorAPI(item);
         }
 
         public void setInraidColor()
@@ -1144,7 +1145,7 @@ namespace TarkovPriceViewer.UI
                     foreach (Match m in mc)
                     {
                         iteminfo_text.Select(m.Index, m.Length);
-                        iteminfo_text.SelectionColor = Color.Gray;
+                        iteminfo_text.SelectionColor = Color.DimGray; // F - worst loot
                     }
                 }
                 else if (item.lootTier.Contains("E"))
@@ -1153,7 +1154,7 @@ namespace TarkovPriceViewer.UI
                     foreach (Match m in mc)
                     {
                         iteminfo_text.Select(m.Index, m.Length);
-                        iteminfo_text.SelectionColor = Color.DarkGoldenrod;
+                        iteminfo_text.SelectionColor = Color.IndianRed; // E - bad (strong red)
                     }
                 }
                 else if (item.lootTier.Contains("D"))
@@ -1162,7 +1163,7 @@ namespace TarkovPriceViewer.UI
                     foreach (Match m in mc)
                     {
                         iteminfo_text.Select(m.Index, m.Length);
-                        iteminfo_text.SelectionColor = Color.DarkGreen;
+                        iteminfo_text.SelectionColor = Color.Khaki; // D - average (neutral yellow)
                     }
                 }
                 else if (item.lootTier.Contains("C"))
@@ -1171,7 +1172,7 @@ namespace TarkovPriceViewer.UI
                     foreach (Match m in mc)
                     {
                         iteminfo_text.Select(m.Index, m.Length);
-                        iteminfo_text.SelectionColor = Color.LimeGreen;
+                        iteminfo_text.SelectionColor = Color.Goldenrod; // C - good
                     }
                 }
                 else if (item.lootTier.Contains("B"))
@@ -1180,7 +1181,7 @@ namespace TarkovPriceViewer.UI
                     foreach (Match m in mc)
                     {
                         iteminfo_text.Select(m.Index, m.Length);
-                        iteminfo_text.SelectionColor = Color.RoyalBlue;
+                        iteminfo_text.SelectionColor = Color.DodgerBlue; // B - great
                     }
                 }
                 else if (item.lootTier.Contains("A"))
@@ -1189,7 +1190,7 @@ namespace TarkovPriceViewer.UI
                     foreach (Match m in mc)
                     {
                         iteminfo_text.Select(m.Index, m.Length);
-                        iteminfo_text.SelectionColor = Color.DarkViolet;
+                        iteminfo_text.SelectionColor = Color.MediumOrchid; // A - top
                     }
                 }
                 else if (item.lootTier.Contains("S"))
@@ -1198,9 +1199,36 @@ namespace TarkovPriceViewer.UI
                     foreach (Match m in mc)
                     {
                         iteminfo_text.Select(m.Index, m.Length);
-                        iteminfo_text.SelectionColor = Color.Gold;
+                        iteminfo_text.SelectionColor = Color.Gold; // S - god tier
                     }
                 }
+            }
+        }
+
+        private void setAmmoTierColorAPI(Item item)
+        {
+            if (item.ammoTier == null)
+                return;
+
+            MatchCollection mc = new Regex(Regex.Escape(item.ammoTier)).Matches(iteminfo_text.Text);
+            foreach (Match m in mc)
+            {
+                iteminfo_text.Select(m.Index, m.Length);
+
+                if (item.ammoTier.Contains("F"))
+                    iteminfo_text.SelectionColor = Color.DimGray;       // F - worst
+                else if (item.ammoTier.Contains("E"))
+                    iteminfo_text.SelectionColor = Color.IndianRed;     // E - bad
+                else if (item.ammoTier.Contains("D"))
+                    iteminfo_text.SelectionColor = Color.Khaki;         // D - average
+                else if (item.ammoTier.Contains("C"))
+                    iteminfo_text.SelectionColor = Color.Goldenrod;     // C - good
+                else if (item.ammoTier.Contains("B"))
+                    iteminfo_text.SelectionColor = Color.DodgerBlue;    // B - great
+                else if (item.ammoTier.Contains("A"))
+                    iteminfo_text.SelectionColor = Color.MediumOrchid;  // A - top
+                else if (item.ammoTier.Contains("S"))
+                    iteminfo_text.SelectionColor = Color.Gold;          // S - god tier
             }
         }
 
