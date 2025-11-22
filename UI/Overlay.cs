@@ -947,19 +947,20 @@ namespace TarkovPriceViewer.UI
             {
                 string slotTier = null;
 
-                if (valuePerSlot < 8500)
+                // Further lowered thresholds (per-slot) so that tiers reflect loot value more sensitively
+                if (valuePerSlot < 3000)
                     slotTier = "F";
-                else if (valuePerSlot >= 8500 && valuePerSlot < 21000)
+                else if (valuePerSlot >= 3000 && valuePerSlot < 8000)
                     slotTier = "E";
-                else if (valuePerSlot >= 21000 && valuePerSlot < 26750)
+                else if (valuePerSlot >= 8000 && valuePerSlot < 14000)
                     slotTier = "D";
-                else if (valuePerSlot >= 26750 && valuePerSlot < 34250)
+                else if (valuePerSlot >= 14000 && valuePerSlot < 22000)
                     slotTier = "C";
-                else if (valuePerSlot >= 34250 && valuePerSlot < 45500)
+                else if (valuePerSlot >= 22000 && valuePerSlot < 32000)
                     slotTier = "B";
-                else if (valuePerSlot >= 45500 && valuePerSlot < 63000)
+                else if (valuePerSlot >= 32000 && valuePerSlot < 42000)
                     slotTier = "A";
-                else if (valuePerSlot >= 63000)
+                else if (valuePerSlot >= 42000)
                     slotTier = "S";
 
                 if (slotTier != null)
