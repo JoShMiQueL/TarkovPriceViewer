@@ -920,33 +920,8 @@ namespace TarkovPriceViewer.UI
             else
                 tier = "F";
 
-            string label;
-            switch (tier)
-            {
-                case "S":
-                    label = "Meta";
-                    break;
-                case "A":
-                    label = "Best";
-                    break;
-                case "B":
-                    label = "Very Good";
-                    break;
-                case "C":
-                    label = "Good";
-                    break;
-                case "D":
-                    label = "Budget";
-                    break;
-                case "E":
-                    label = "Low";
-                    break;
-                default: // "F"
-                    label = "Trash";
-                    break;
-            }
-
-            item.ammoTier = "Tier " + tier + " (" + label + ")";
+            string ammoLabel = GetAmmoTierLabel(tier);
+            item.ammoTier = "Tier " + tier + " (" + ammoLabel + ")";
         }
 
         private void SetLootTierPerSlot(Item item)
@@ -957,7 +932,8 @@ namespace TarkovPriceViewer.UI
             string mappedTier;
             if (!string.IsNullOrEmpty(item.name) && LootTierByName.TryGetValue(item.name, out mappedTier))
             {
-                item.lootTier = "[★] Tier " + mappedTier; // Tarkov.dev mapped tier (star indicates external mapping)
+                string lootLabel = GetLootTierLabel(mappedTier);
+                item.lootTier = "[★] Tier " + mappedTier + " (" + lootLabel + ")"; // Tarkov.dev mapped tier (star indicates external mapping)
                 return;
             }
 
@@ -987,7 +963,54 @@ namespace TarkovPriceViewer.UI
                     slotTier = "S";
 
                 if (slotTier != null)
-                    item.lootTier = "Tier " + slotTier; // Local per-slot tier (no star => not from tarkov.dev)
+                {
+                    string lootLabel = GetLootTierLabel(slotTier);
+                    item.lootTier = "Tier " + slotTier + " (" + lootLabel + ")"; // Local per-slot tier (no star => not from tarkov.dev)
+                }
+            }
+        }
+
+        private string GetAmmoTierLabel(string tier)
+        {
+            // Ammo-oriented naming (penetration-focused)
+            switch (tier)
+            {
+                case "S":
+                    return "Meta";
+                case "A":
+                    return "Best";
+                case "B":
+                    return "Very Good";
+                case "C":
+                    return "Good";
+                case "D":
+                    return "Budget";
+                case "E":
+                    return "Low";
+                default: // "F" or anything else
+                    return "Trash";
+            }
+        }
+
+        private string GetLootTierLabel(string tier)
+        {
+            // Loot/value-oriented naming for general items
+            switch (tier)
+            {
+                case "S":
+                    return "God Tier";
+                case "A":
+                    return "Top";
+                case "B":
+                    return "Great";
+                case "C":
+                    return "Good";
+                case "D":
+                    return "Decent";
+                case "E":
+                    return "Poor";
+                default: // "F" or anything else
+                    return "Trash";
             }
         }
 
