@@ -1341,9 +1341,7 @@ namespace TarkovPriceViewer.UI
 
                     string line = text.Substring(lineStartIdx, lineEndIdx - lineStartIdx);
 
-                    // Skip informational lines like Price and Avg. Day Price; only highlight
-                    // Profit [...] and trader sell lines.
-                    if (line.Contains("Price:") || line.Contains("Avg. Day Price:"))
+                    if (line.Contains("Price ") || line.Contains("Avg. Day Price "))
                         continue;
 
                     var slotGroup = m.Groups["slot"]; // e.g. "12 345 ₽/Slot"
