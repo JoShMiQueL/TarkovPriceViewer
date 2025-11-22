@@ -117,6 +117,12 @@ Since version 1.06 you can compare some options of items with the shortcut key (
     - PaddleOCR language model.
   - This makes the **first scan much faster and more consistent**.
 
+- **Worth thresholds & trader vs Flea tolerance**
+  - New **Item Worth Threshold (₽/slot)** setting to control when high value-per-slot items are highlighted as "WORTH".
+  - Separate **Ammo Worth Threshold** so typical bullet prices can still trigger worth highlighting without affecting other items.
+  - A **Profit vs. Flea tolerance** slider controls when the overlay prefers a trader over the Flea Market, based on per-slot value.
+  - The overlay shows a helper suffix like `(68% of Flea, min 40%)` next to the trader line and highlights it in green when the actual percentage meets or exceeds the configured minimum.
+
 ### TarkovTracker & Hideout settings (v1.35)
 
 - To use tracker-aware features you need a **TarkovTracker API key**:
@@ -127,6 +133,14 @@ Since version 1.06 you can compare some options of items with the shortcut key (
   - The overlay will display **Needed for Hideout** with remaining counts per station level.
   - You can use the **Up/Down arrow keys** while the overlay is visible to increment/decrement progress for the current item.
   - Local progress will be persisted between sessions in the `tarkovtracker-tasks.json` and `tarkovtracker-hideout.json` files.
+
+- **Item & ammo worth thresholds**
+  - `Item Worth Threshold (₽/slot)`: base per-slot value above which items are highlighted as "WORTH".
+  - `Ammo Worth Threshold`: per-round threshold used only for ammo types.
+- **Profit vs. Flea tolerance**
+  - Slider from 0100% that controls how close a trader's per-slot price must be to Flea to be considered competitive.
+  - The overlay displays `(XX% of Flea, min YY%)`; it turns green when `XX >= YY`.
+</br>
 
 ## Settings
 
