@@ -796,6 +796,29 @@ namespace TarkovPriceViewer.UI
 
                             iteminfo_ball.Rows.Clear();
                             iteminfo_text.Text = sb.ToString().Trim();
+
+                            // Highlight trader vs Flea percentage suffix, e.g. "(68% of Flea, min 40%)"
+                            // Only color it green when the actual percentage is >= the configured minimum.
+                            try
+                            {
+                                string fullText = iteminfo_text.Text;
+                                var percentMatches = Regex.Matches(fullText, @"\((?<ratio>\d+)% of Flea, min (?<min>\d+)%\)");
+                                foreach (Match m in percentMatches)
+                                {
+                                    if (int.TryParse(m.Groups["ratio"].Value, out int ratioValue) &&
+                                        int.TryParse(m.Groups["min"].Value, out int minValue) &&
+                                        ratioValue >= minValue)
+                                    {
+                                        iteminfo_text.Select(m.Index, m.Length);
+                                        iteminfo_text.SelectionColor = Color.LimeGreen;
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                                // ignore coloring errors
+                            }
+
                             setTextColorsAPI(item);
                             if (item.ballistic != null)
                             {
