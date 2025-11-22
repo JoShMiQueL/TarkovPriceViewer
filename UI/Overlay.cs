@@ -1306,7 +1306,7 @@ namespace TarkovPriceViewer.UI
                 if (string.IsNullOrEmpty(text))
                     return;
 
-                int threshold = Program.GetWorthPerSlotThreshold();
+                int threshold = _settingsService?.Settings.ItemWorthThreshold ?? 0;
 
                 // For ammo items, use a separate worth threshold so typical bullet prices
                 // (e.g. 800–1500 ₽/round) can still trigger worth highlighting.

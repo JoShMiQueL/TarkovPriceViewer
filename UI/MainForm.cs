@@ -238,7 +238,7 @@ namespace TarkovPriceViewer.UI
 			TarkovTrackerCheckBox.Checked = s.UseTarkovTrackerApi;
 			hideoutUpgrades_checkBox.Checked = s.ShowHideoutUpgrades;
 			tarkovTrackerApiKey_textbox.Text = s.TarkovTrackerApiKey;
-			var worthThreshold = Math.Max(worthThresholdNumeric.Minimum, Math.Min(worthThresholdNumeric.Maximum, s.WorthPerSlotThreshold));
+			var worthThreshold = Math.Max(worthThresholdNumeric.Minimum, Math.Min(worthThresholdNumeric.Maximum, s.ItemWorthThreshold));
 			worthThresholdNumeric.Value = worthThreshold;
 
 			languageBox.Items.Add("en");
@@ -1087,7 +1087,7 @@ namespace TarkovPriceViewer.UI
 
 		private void worthThresholdNumeric_ValueChanged(object sender, EventArgs e)
 		{
-			_settingsService.Settings.WorthPerSlotThreshold = (int)worthThresholdNumeric.Value;
+			_settingsService.Settings.ItemWorthThreshold = (int)worthThresholdNumeric.Value;
 			_settingsService.Save();
 		}
 

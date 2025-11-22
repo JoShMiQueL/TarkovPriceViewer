@@ -59,8 +59,6 @@ namespace TarkovPriceViewer
         public static readonly char dollar = '$';
         public static readonly char euro = '€';
         public static readonly char[] splitcur = new char[] { rouble, dollar, euro };
-        public const string WorthPerSlotThresholdKey = "WorthPerSlotThreshold";
-        public const int WorthPerSlotThresholdDefault = 7500;
         public static readonly Regex inraid_filter = new Regex(@"in raid");
         public static DateTime APILastUpdated = DateTime.Now.AddHours(-5);
         public static DateTime TarkovTrackerAPILastUpdated = DateTime.Now.AddHours(-5);
@@ -69,6 +67,8 @@ namespace TarkovPriceViewer
         public static bool forceUpdateAPI = false;
         public static bool forceUpdateTrackerAPI = false;
         private static object lockObject = new object();
+
+        public static AppSettings AppSettings => _settingsService.Settings;
 
         [STAThread]
         static void Main()
@@ -318,8 +318,6 @@ namespace TarkovPriceViewer
             }
         }
 
-        public static AppSettings AppSettings => _settingsService.Settings;
-
         public static void LoadSettings()
         {
             try
@@ -330,11 +328,6 @@ namespace TarkovPriceViewer
             {
                 Debug.WriteLine("Error 12: " + e.Message);
             }
-        }
-
-        public static int GetWorthPerSlotThreshold()
-        {
-            return AppSettings.WorthPerSlotThreshold;
         }
 
         public static void SaveSettings()

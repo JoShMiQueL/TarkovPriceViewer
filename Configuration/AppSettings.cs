@@ -29,7 +29,7 @@ namespace TarkovPriceViewer.Configuration
         public bool ShowHideoutUpgrades { get; set; } = true;
         public string Language { get; set; } = "en";
         public string Mode { get; set; } = "regular";
-        public int WorthPerSlotThreshold { get; set; } = 7500;
+        public int ItemWorthThreshold { get; set; } = 7500;
         public int AmmoWorthThreshold { get; set; } = 800;
         public int FleaTraderProfitTolerancePercent { get; set; } = 85;
     }
