@@ -36,6 +36,9 @@ namespace TarkovPriceViewer.UI
 			trayshow = new System.Windows.Forms.ToolStripMenuItem();
 			trayexit = new System.Windows.Forms.ToolStripMenuItem();
 			panel1 = new System.Windows.Forms.Panel();
+			label7 = new System.Windows.Forms.Label();
+			AmmoWorthThreshold = new System.Windows.Forms.NumericUpDown();
+			label6 = new System.Windows.Forms.Label();
 			worthThresholdNumeric = new System.Windows.Forms.NumericUpDown();
 			hideoutUpgrades_checkBox = new System.Windows.Forms.CheckBox();
 			worthThresholdLabel = new System.Windows.Forms.Label();
@@ -80,6 +83,10 @@ namespace TarkovPriceViewer.UI
 			check_idle_time = new System.Windows.Forms.Timer(components);
 			refresh_b = new System.Windows.Forms.Button();
 			panel8 = new System.Windows.Forms.Panel();
+			label5 = new System.Windows.Forms.Label();
+			DecreaseTrackerCountButton = new System.Windows.Forms.Button();
+			label4 = new System.Windows.Forms.Label();
+			IncreaseTrackerCountButton = new System.Windows.Forms.Button();
 			TarkovTrackerCheckBox = new System.Windows.Forms.CheckBox();
 			label2 = new System.Windows.Forms.Label();
 			tarkovTrackerApiKey_textbox = new System.Windows.Forms.TextBox();
@@ -88,12 +95,11 @@ namespace TarkovPriceViewer.UI
 			languageBox = new System.Windows.Forms.ComboBox();
 			label3 = new System.Windows.Forms.Label();
 			modeBox = new System.Windows.Forms.ComboBox();
-			IncreaseTrackerCountButton = new System.Windows.Forms.Button();
-			label4 = new System.Windows.Forms.Label();
-			label5 = new System.Windows.Forms.Label();
-			DecreaseTrackerCountButton = new System.Windows.Forms.Button();
+			ProfitVsFleaTolerance = new System.Windows.Forms.TrackBar();
+			ProfitVsFleaToleranceLabel = new System.Windows.Forms.Label();
 			TrayMenu.SuspendLayout();
 			panel1.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)AmmoWorthThreshold).BeginInit();
 			((System.ComponentModel.ISupportInitialize)worthThresholdNumeric).BeginInit();
 			((System.ComponentModel.ISupportInitialize)TransParent_Bar).BeginInit();
 			panel4.SuspendLayout();
@@ -103,6 +109,7 @@ namespace TarkovPriceViewer.UI
 			panel6.SuspendLayout();
 			panel7.SuspendLayout();
 			panel8.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)ProfitVsFleaTolerance).BeginInit();
 			SuspendLayout();
 			// 
 			// TrayIcon
@@ -135,6 +142,11 @@ namespace TarkovPriceViewer.UI
 			// 
 			// panel1
 			// 
+			panel1.Controls.Add(ProfitVsFleaToleranceLabel);
+			panel1.Controls.Add(ProfitVsFleaTolerance);
+			panel1.Controls.Add(label7);
+			panel1.Controls.Add(AmmoWorthThreshold);
+			panel1.Controls.Add(label6);
 			panel1.Controls.Add(worthThresholdNumeric);
 			panel1.Controls.Add(hideoutUpgrades_checkBox);
 			panel1.Controls.Add(worthThresholdLabel);
@@ -149,8 +161,45 @@ namespace TarkovPriceViewer.UI
 			panel1.Location = new System.Drawing.Point(12, 166);
 			panel1.Margin = new System.Windows.Forms.Padding(4);
 			panel1.Name = "panel1";
-			panel1.Size = new System.Drawing.Size(296, 211);
+			panel1.Size = new System.Drawing.Size(296, 310);
 			panel1.TabIndex = 1;
+			// 
+			// label7
+			// 
+			label7.AutoSize = true;
+			label7.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 129);
+			label7.Location = new System.Drawing.Point(6, 256);
+			label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			label7.Name = "label7";
+			label7.Size = new System.Drawing.Size(96, 15);
+			label7.TabIndex = 11;
+			label7.Text = "Profit Vs. Flea";
+			// 
+			// AmmoWorthThreshold
+			// 
+			AmmoWorthThreshold.Increment = new decimal(new int[] { 100, 0, 0, 0 });
+			AmmoWorthThreshold.Location = new System.Drawing.Point(9, 229);
+			AmmoWorthThreshold.Margin = new System.Windows.Forms.Padding(4);
+			AmmoWorthThreshold.Maximum = new decimal(new int[] { 1000000, 0, 0, 0 });
+			AmmoWorthThreshold.Minimum = new decimal(new int[] { 100, 0, 0, 0 });
+			AmmoWorthThreshold.Name = "AmmoWorthThreshold";
+			AmmoWorthThreshold.Size = new System.Drawing.Size(126, 23);
+			AmmoWorthThreshold.TabIndex = 10;
+			AmmoWorthThreshold.TabStop = false;
+			AmmoWorthThreshold.ThousandsSeparator = true;
+			AmmoWorthThreshold.Value = new decimal(new int[] { 100, 0, 0, 0 });
+			AmmoWorthThreshold.ValueChanged += AmmoWorthThreshold_ValueChanged;
+			// 
+			// label6
+			// 
+			label6.AutoSize = true;
+			label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 129);
+			label6.Location = new System.Drawing.Point(6, 209);
+			label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			label6.Name = "label6";
+			label6.Size = new System.Drawing.Size(156, 15);
+			label6.TabIndex = 9;
+			label6.Text = "Ammo Worth Threshold";
 			// 
 			// worthThresholdNumeric
 			// 
@@ -187,9 +236,9 @@ namespace TarkovPriceViewer.UI
 			worthThresholdLabel.Location = new System.Drawing.Point(6, 163);
 			worthThresholdLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
 			worthThresholdLabel.Name = "worthThresholdLabel";
-			worthThresholdLabel.Size = new System.Drawing.Size(157, 15);
+			worthThresholdLabel.Size = new System.Drawing.Size(193, 15);
 			worthThresholdLabel.TabIndex = 0;
-			worthThresholdLabel.Text = "Worth threshold (₽/slot)";
+			worthThresholdLabel.Text = "Item Worth Threshold (₽/slot)";
 			// 
 			// day_price_box
 			// 
@@ -309,7 +358,7 @@ namespace TarkovPriceViewer.UI
 			// TransParent_Text
 			// 
 			TransParent_Text.AutoSize = true;
-			TransParent_Text.Location = new System.Drawing.Point(234, 38);
+			TransParent_Text.Location = new System.Drawing.Point(237, 30);
 			TransParent_Text.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
 			TransParent_Text.Name = "TransParent_Text";
 			TransParent_Text.Size = new System.Drawing.Size(29, 15);
@@ -513,7 +562,7 @@ namespace TarkovPriceViewer.UI
 			// MinimizetoTrayWhenStartup
 			// 
 			MinimizetoTrayWhenStartup.AutoSize = true;
-			MinimizetoTrayWhenStartup.Location = new System.Drawing.Point(21, 523);
+			MinimizetoTrayWhenStartup.Location = new System.Drawing.Point(21, 616);
 			MinimizetoTrayWhenStartup.Margin = new System.Windows.Forms.Padding(4);
 			MinimizetoTrayWhenStartup.Name = "MinimizetoTrayWhenStartup";
 			MinimizetoTrayWhenStartup.Size = new System.Drawing.Size(171, 19);
@@ -552,7 +601,7 @@ namespace TarkovPriceViewer.UI
 			panel3.Controls.Add(TransParent_Text);
 			panel3.Controls.Add(TransParent_Desc);
 			panel3.Controls.Add(TransParent_Bar);
-			panel3.Location = new System.Drawing.Point(12, 450);
+			panel3.Location = new System.Drawing.Point(316, 536);
 			panel3.Margin = new System.Windows.Forms.Padding(4);
 			panel3.Name = "panel3";
 			panel3.Size = new System.Drawing.Size(296, 63);
@@ -560,7 +609,7 @@ namespace TarkovPriceViewer.UI
 			// 
 			// Exit_Button
 			// 
-			Exit_Button.Location = new System.Drawing.Point(534, 517);
+			Exit_Button.Location = new System.Drawing.Point(538, 610);
 			Exit_Button.Margin = new System.Windows.Forms.Padding(4);
 			Exit_Button.Name = "Exit_Button";
 			Exit_Button.Size = new System.Drawing.Size(74, 29);
@@ -616,12 +665,11 @@ namespace TarkovPriceViewer.UI
 			CompareOverlay_Desc2.TabIndex = 0;
 			CompareOverlay_Desc2.Text = "※ Experiential";
 			// 
-			// 
 			// panel7
 			// 
 			panel7.Controls.Add(RandomItem);
 			panel7.Controls.Add(ForFunRandom_Desc);
-			panel7.Location = new System.Drawing.Point(12, 385);
+			panel7.Location = new System.Drawing.Point(12, 536);
 			panel7.Margin = new System.Windows.Forms.Padding(4);
 			panel7.Name = "panel7";
 			panel7.Size = new System.Drawing.Size(296, 64);
@@ -681,8 +729,54 @@ namespace TarkovPriceViewer.UI
 			panel8.Location = new System.Drawing.Point(316, 352);
 			panel8.Margin = new System.Windows.Forms.Padding(4);
 			panel8.Name = "panel8";
-			panel8.Size = new System.Drawing.Size(296, 161);
+			panel8.Size = new System.Drawing.Size(296, 176);
 			panel8.TabIndex = 17;
+			// 
+			// label5
+			// 
+			label5.AutoSize = true;
+			label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 129);
+			label5.Location = new System.Drawing.Point(17, 148);
+			label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			label5.Name = "label5";
+			label5.Size = new System.Drawing.Size(96, 15);
+			label5.TabIndex = 20;
+			label5.Text = "-1 Item Found";
+			// 
+			// DecreaseTrackerCountButton
+			// 
+			DecreaseTrackerCountButton.Location = new System.Drawing.Point(153, 143);
+			DecreaseTrackerCountButton.Margin = new System.Windows.Forms.Padding(4);
+			DecreaseTrackerCountButton.Name = "DecreaseTrackerCountButton";
+			DecreaseTrackerCountButton.Size = new System.Drawing.Size(128, 29);
+			DecreaseTrackerCountButton.TabIndex = 19;
+			DecreaseTrackerCountButton.TabStop = false;
+			DecreaseTrackerCountButton.Text = "F1";
+			DecreaseTrackerCountButton.UseVisualStyleBackColor = true;
+			DecreaseTrackerCountButton.Click += Overlay_Button_Click;
+			// 
+			// label4
+			// 
+			label4.AutoSize = true;
+			label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 129);
+			label4.Location = new System.Drawing.Point(15, 115);
+			label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			label4.Name = "label4";
+			label4.Size = new System.Drawing.Size(99, 15);
+			label4.TabIndex = 18;
+			label4.Text = "+1 Item Found";
+			// 
+			// IncreaseTrackerCountButton
+			// 
+			IncreaseTrackerCountButton.Location = new System.Drawing.Point(153, 110);
+			IncreaseTrackerCountButton.Margin = new System.Windows.Forms.Padding(4);
+			IncreaseTrackerCountButton.Name = "IncreaseTrackerCountButton";
+			IncreaseTrackerCountButton.Size = new System.Drawing.Size(128, 29);
+			IncreaseTrackerCountButton.TabIndex = 17;
+			IncreaseTrackerCountButton.TabStop = false;
+			IncreaseTrackerCountButton.Text = "F2";
+			IncreaseTrackerCountButton.UseVisualStyleBackColor = true;
+			IncreaseTrackerCountButton.Click += Overlay_Button_Click;
 			// 
 			// TarkovTrackerCheckBox
 			// 
@@ -757,51 +851,29 @@ namespace TarkovPriceViewer.UI
 			modeBox.Size = new System.Drawing.Size(69, 23);
 			modeBox.TabIndex = 20;
 			// 
-			// IncreaseTrackerCountButton (configura hotkey +1 Item Found)
+			// ProfitVsFleaTolerance
 			// 
-			IncreaseTrackerCountButton.Location = new System.Drawing.Point(153, 99);
-			IncreaseTrackerCountButton.Margin = new System.Windows.Forms.Padding(4);
-			IncreaseTrackerCountButton.Name = "IncreaseTrackerCountButton";
-			IncreaseTrackerCountButton.Size = new System.Drawing.Size(128, 29);
-			IncreaseTrackerCountButton.TabIndex = 17;
-			IncreaseTrackerCountButton.TabStop = false;
-			IncreaseTrackerCountButton.Text = "F2";
-			IncreaseTrackerCountButton.UseVisualStyleBackColor = true;
-			IncreaseTrackerCountButton.Click += Overlay_Button_Click;
+			ProfitVsFleaTolerance.Location = new System.Drawing.Point(9, 275);
+			ProfitVsFleaTolerance.Margin = new System.Windows.Forms.Padding(4);
+			ProfitVsFleaTolerance.Maximum = 100;
+			ProfitVsFleaTolerance.Minimum = 0;
+			ProfitVsFleaTolerance.Name = "ProfitVsFleaTolerance";
+			ProfitVsFleaTolerance.Size = new System.Drawing.Size(124, 45);
+			ProfitVsFleaTolerance.TabIndex = 12;
+			ProfitVsFleaTolerance.TabStop = false;
+			ProfitVsFleaTolerance.TickFrequency = 5;
+			ProfitVsFleaTolerance.Value = 80;
+			ProfitVsFleaTolerance.Scroll += ProfitVsFleaTolerance_Scroll;
 			// 
-			// label4
+			// ProfitVsFleaToleranceLabel
 			// 
-			label4.AutoSize = true;
-			label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 129);
-			label4.Location = new System.Drawing.Point(15, 104);
-			label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-			label4.Name = "label4";
-			label4.Size = new System.Drawing.Size(99, 15);
-			label4.TabIndex = 18;
-			label4.Text = "+1 Item Found";
-			// 
-			// label5
-			// 
-			label5.AutoSize = true;
-			label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 129);
-			label5.Location = new System.Drawing.Point(17, 137);
-			label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-			label5.Name = "label5";
-			label5.Size = new System.Drawing.Size(96, 15);
-			label5.TabIndex = 20;
-			label5.Text = "-1 Item Found";
-			// 
-			// DecreaseTrackerCountButton (configura hotkey -1 Item Found)
-			// 
-			DecreaseTrackerCountButton.Location = new System.Drawing.Point(153, 132);
-			DecreaseTrackerCountButton.Margin = new System.Windows.Forms.Padding(4);
-			DecreaseTrackerCountButton.Name = "DecreaseTrackerCountButton";
-			DecreaseTrackerCountButton.Size = new System.Drawing.Size(128, 29);
-			DecreaseTrackerCountButton.TabIndex = 19;
-			DecreaseTrackerCountButton.TabStop = false;
-			DecreaseTrackerCountButton.Text = "F1";
-			DecreaseTrackerCountButton.UseVisualStyleBackColor = true;
-			DecreaseTrackerCountButton.Click += Overlay_Button_Click;
+			ProfitVsFleaToleranceLabel.AutoSize = true;
+			ProfitVsFleaToleranceLabel.Location = new System.Drawing.Point(133, 278);
+			ProfitVsFleaToleranceLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			ProfitVsFleaToleranceLabel.Name = "ProfitVsFleaToleranceLabel";
+			ProfitVsFleaToleranceLabel.Size = new System.Drawing.Size(35, 15);
+			ProfitVsFleaToleranceLabel.TabIndex = 13;
+			ProfitVsFleaToleranceLabel.Text = "80%";
 			// 
 			// MainForm
 			// 
@@ -809,7 +881,7 @@ namespace TarkovPriceViewer.UI
 			AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
 			BackColor = System.Drawing.Color.White;
-			ClientSize = new System.Drawing.Size(621, 555);
+			ClientSize = new System.Drawing.Size(621, 646);
 			Controls.Add(CheckUpdate);
 			Controls.Add(modeBox);
 			Controls.Add(label3);
@@ -838,6 +910,7 @@ namespace TarkovPriceViewer.UI
 			TrayMenu.ResumeLayout(false);
 			panel1.ResumeLayout(false);
 			panel1.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)AmmoWorthThreshold).EndInit();
 			((System.ComponentModel.ISupportInitialize)worthThresholdNumeric).EndInit();
 			((System.ComponentModel.ISupportInitialize)TransParent_Bar).EndInit();
 			panel4.ResumeLayout(false);
@@ -853,6 +926,7 @@ namespace TarkovPriceViewer.UI
 			panel7.PerformLayout();
 			panel8.ResumeLayout(false);
 			panel8.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)ProfitVsFleaTolerance).EndInit();
 			ResumeLayout(false);
 			PerformLayout();
 
@@ -920,5 +994,10 @@ namespace TarkovPriceViewer.UI
         private System.Windows.Forms.Button DecreaseTrackerCountButton;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label4;
-    }
+		private System.Windows.Forms.Label label7;
+		private System.Windows.Forms.NumericUpDown AmmoWorthThreshold;
+		private System.Windows.Forms.Label label6;
+		private System.Windows.Forms.Label ProfitVsFleaToleranceLabel;
+		private System.Windows.Forms.TrackBar ProfitVsFleaTolerance;
+	}
 }

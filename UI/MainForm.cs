@@ -240,6 +240,11 @@ namespace TarkovPriceViewer.UI
 			tarkovTrackerApiKey_textbox.Text = s.TarkovTrackerApiKey;
 			var worthThreshold = Math.Max(worthThresholdNumeric.Minimum, Math.Min(worthThresholdNumeric.Maximum, s.ItemWorthThreshold));
 			worthThresholdNumeric.Value = worthThreshold;
+			var ammoThreshold = Math.Max(AmmoWorthThreshold.Minimum, Math.Min(AmmoWorthThreshold.Maximum, s.AmmoWorthThreshold));
+			AmmoWorthThreshold.Value = ammoThreshold;
+			var profitTolerance = Math.Max(ProfitVsFleaTolerance.Minimum, Math.Min(ProfitVsFleaTolerance.Maximum, s.FleaTraderProfitTolerancePercent));
+			ProfitVsFleaTolerance.Value = profitTolerance;
+			ProfitVsFleaToleranceLabel.Text = profitTolerance + "%";
 
 			languageBox.Items.Add("en");
 			languageBox.Items.Add("ko");
@@ -1088,6 +1093,19 @@ namespace TarkovPriceViewer.UI
 		private void worthThresholdNumeric_ValueChanged(object sender, EventArgs e)
 		{
 			_settingsService.Settings.ItemWorthThreshold = (int)worthThresholdNumeric.Value;
+			_settingsService.Save();
+		}
+
+		private void AmmoWorthThreshold_ValueChanged(object sender, EventArgs e)
+		{
+			_settingsService.Settings.AmmoWorthThreshold = (int)AmmoWorthThreshold.Value;
+			_settingsService.Save();
+		}
+
+		private void ProfitVsFleaTolerance_Scroll(object sender, EventArgs e)
+		{
+			_settingsService.Settings.FleaTraderProfitTolerancePercent = ProfitVsFleaTolerance.Value;
+			ProfitVsFleaToleranceLabel.Text = ProfitVsFleaTolerance.Value + "%";
 			_settingsService.Save();
 		}
 
