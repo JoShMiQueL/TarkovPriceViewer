@@ -1629,6 +1629,7 @@ namespace TarkovPriceViewer.UI
         {
             Action show = delegate ()
             {
+                _currentItem = null;
                 iteminfo_ball.Visible = false;
                 iteminfo_panel.Visible = false;
             };
