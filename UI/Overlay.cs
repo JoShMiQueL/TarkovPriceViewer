@@ -196,7 +196,7 @@ namespace TarkovPriceViewer.UI
 
                             string mainCurrency = Program.rouble.ToString();
                             string BestSellTo_vendorName = "";
-                            string BestBuyFrom_vendorName = "";
+                            string bestSellTraderLine = null;
 
                             StringBuilder sb = new StringBuilder();
 
@@ -205,8 +205,9 @@ namespace TarkovPriceViewer.UI
                             if (item.lootTier != null)
                                 sb.Append(String.Format("{0}", item.lootTier));
 
-                            // Name
-                            sb.Append(String.Format("\n{0}", item.name));
+                            // Name + last updated time on the right
+                            string itemLastUpdate = item.updated == null ? "" : Program.LastUpdated((DateTime)item.updated);
+                            sb.Append(String.Format("\n{0}\t\t{1}", item.name, itemLastUpdate));
 
                             // Helmet/armour class
                             if (item.properties != null && item.properties._class != null)
@@ -265,88 +266,57 @@ namespace TarkovPriceViewer.UI
                                 if (vendorPrice > 0)
                                 {
                                     string pricePerSlotDetails = GetPricePerSlotDetails(item, vendorPrice, mainCurrency);
+                                    // Show 'Flea' when best is Flea Market, otherwise show the actual trader name (with LL if present)
+                                    string profitSource = lastSortedVendor.vendor.name == "Flea Market" ? "Flea" : BestSellTo_vendorName;
                                     sb = RemoveTrailingLineBreaks(sb);
-                                    sb.Append(String.Format("\n\nBest sell to {0} --> {1}{2}{3}", BestSellTo_vendorName, vendorPrice.ToString("N0"), mainCurrency, pricePerSlotDetails));
+                                    sb.Append(String.Format("\n\nProfit [{0}]\t\t{1}{2} {3}", profitSource, vendorPrice.ToString("N0"), mainCurrency, pricePerSlotDetails));
+                                    sb.Append("\n------------------------------------------------------------");
                                 }
                             }
 
-                            // Find best trader to buy from
-                            if (item.buyFor.Count > 0)
+                             
+
+                            // Build trader detail line from best non-Flea trader (if any)
+                            if (item.sellFor.Count > 0)
                             {
-                                List<BuyFor> list = new List<BuyFor>(item.buyFor);
-                                var sortedVendor = list.OrderBy(p => p.priceRUB).First();
-                                BestBuyFrom_vendorName = sortedVendor.vendor.name;
+                                List<SellFor> traderList = new List<SellFor>(item.sellFor);
+                                traderList.RemoveAll(p => p.vendor.name == "Flea Market");
+                                if (traderList.Count > 0)
+                                {
+                                    var bestTrader = traderList.OrderByDescending(p => p.priceRUB).First();
+                                    string traderName = bestTrader.vendor.name;
+                                    // if (bestTrader.vendor.minTraderLevel != null)
+                                    //     traderName += " LL" + bestTrader.vendor.minTraderLevel;
 
-                                int vendorPrice = sortedVendor.priceRUB.Value;
-                                if (sortedVendor.vendor.name == "Flea Market" && item.lastLowPrice != null)
-                                    vendorPrice = item.lastLowPrice.Value;
-
-                                if (sortedVendor.vendor.minTraderLevel != null)
-                                    BestBuyFrom_vendorName += " LL" + sortedVendor.vendor.minTraderLevel;
-
-                                if (vendorPrice > 0)
-                                    sb.Append(String.Format("\nBest buy from {0} --> {1}{2}", BestBuyFrom_vendorName, vendorPrice.ToString("N0"), mainCurrency));
+                                    int traderPrice = bestTrader.priceRUB ?? 0;
+                                    if (traderPrice > 0)
+                                    {
+                                        string pricePerSlotDetails = GetPricePerSlotDetails(item, traderPrice, mainCurrency);
+                                        bestSellTraderLine = String.Format("\n{0}\t\t{1}{2}{3}",
+                                            traderName,
+                                            traderPrice.ToString("N0"),
+                                            mainCurrency,
+                                            pricePerSlotDetails);
+                                    }
+                                }
                             }
 
                             if (_settingsService?.Settings.ShowLastPrice == true && item.lastLowPrice != null)
                             {
                                 sb = RemoveTrailingLineBreaks(sb);
-                                var lastupdate = item.updated == null ? "" : Program.LastUpdated((DateTime)item.updated);
-                                sb.Append(String.Format("\n\nLast Price : {0}{1}  ({2})", ((int)item.lastLowPrice).ToString("N0"), mainCurrency, lastupdate));
+                                sb.Append(String.Format("\nPrice:\t\t\t{0}{1}", ((int)item.lastLowPrice).ToString("N0"), mainCurrency));
                             }
-                            if (item.fleaMarketFee != null && !item.types.Exists(e => e.Equals("preset")))
-                            {
-                                if (flea_profit > 0)
-                                    sb.Append(String.Format("\nProfit : {0}{1} (Fee : {2}{3})", flea_profit.ToString("N0"), mainCurrency, item.fleaMarketFee.Value.ToString("N0"), mainCurrency));
-                            }
+
                             if (_settingsService?.Settings.ShowDayPrice == true && item.avg24hPrice != null && item.avg24hPrice.Value > 0)
                             {
-                                sb.Append(String.Format("\nAverage 24h : {0}{1}", item.avg24hPrice.Value.ToString("N0"), mainCurrency));
+                                sb.Append(String.Format("\nAvg. Day Price:\t\t{0}{1}", item.avg24hPrice.Value.ToString("N0"), mainCurrency));
                             }
 
-                            bool sellToText = false;
-                            if (_settingsService?.Settings.SellToTrader == true && item.sellFor.Count > 0)
+                            sb.Append("\n------------------------------------------------------------");
+
+                            if (bestSellTraderLine != null)
                             {
-                                List<SellFor> list = new List<SellFor>(item.sellFor);
-                                list.RemoveAll(p => p.vendor.name == "Flea Market");
-                                if (list.Count > 0)
-                                {
-                                    var sortedNoFlea = list.OrderByDescending(p => p.priceRUB).First();
-                                    string vendorName = sortedNoFlea.vendor.name;
-
-                                    if (sortedNoFlea.vendor.minTraderLevel != null)
-                                        vendorName += " LL" + sortedNoFlea.vendor.minTraderLevel;
-
-                                    if (BestSellTo_vendorName != vendorName)
-                                    {
-                                        string pricePerSlotDetails = GetPricePerSlotDetails(item, sortedNoFlea.priceRUB.Value, mainCurrency);
-                                        sb = RemoveTrailingLineBreaks(sb);
-                                        sb.Append(String.Format("\n\nSell to {0} --> {1}{2}{3}", vendorName, sortedNoFlea.priceRUB.Value.ToString("N0"), mainCurrency, pricePerSlotDetails));
-                                        sellToText = true;
-                                    }
-                                }
-                            }
-                            if (_settingsService?.Settings.BuyFromTrader == true && item.buyFor.Count > 0)
-                            {
-                                List<BuyFor> list = new List<BuyFor>(item.buyFor);
-                                list.RemoveAll(p => p.vendor.name == "Flea Market");
-                                if (list.Count > 0)
-                                {
-                                    var sortedNoFlea = list.OrderBy(p => p.priceRUB).First();
-                                    string vendorName = sortedNoFlea.vendor.name;
-
-                                    if (sortedNoFlea.vendor.minTraderLevel != null)
-                                        vendorName += " LL" + sortedNoFlea.vendor.minTraderLevel;
-                                    if (BestBuyFrom_vendorName != vendorName)
-                                    {
-                                        sb = RemoveTrailingLineBreaks(sb);
-                                        if (sellToText)
-                                            sb.Append(String.Format("\n"));
-                                        else
-                                            sb.Append(String.Format("\n\n"));
-                                        sb.Append(String.Format("Buy from {0} --> {1}{2}", vendorName, sortedNoFlea.priceRUB.Value.ToString("N0"), mainCurrency));
-                                    }
-                                }
+                                sb.Append(bestSellTraderLine);
                             }
 
                             if (_settingsService?.Settings.Needs == true && item.usedInTasks.Count > 0 && _settingsService.Settings.UseTarkovTrackerApi && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
@@ -367,7 +337,7 @@ namespace TarkovPriceViewer.UI
 
                                     string task1 = "";
                                     if (task.minPlayerLevel != null)
-                                        task1 += "[" + task.minPlayerLevel + "] ";
+                                        task1 += "[Lv." + task.minPlayerLevel + "] ";
                                     task1 += task.name;
                                     if (task.map != null)
                                         task1 += " [" + task.map.name + "]";
@@ -523,7 +493,7 @@ namespace TarkovPriceViewer.UI
 
                                         foreach (var upgrade in sortedUpgradesList)
                                         {
-                                            upgrades += "[Level " + upgrade.Level + "] " + upgrade.Name + " (x" + upgrade.Count + ")\n";
+                                            upgrades += "[Lv." + upgrade.Level + "] " + upgrade.Name + " (x" + upgrade.Count + ")\n";
                                         }
 
                                         sb = RemoveTrailingLineBreaks(sb);
@@ -761,7 +731,7 @@ namespace TarkovPriceViewer.UI
             string mappedTier;
             if (!string.IsNullOrEmpty(item.name) && LootTierByName.TryGetValue(item.name, out mappedTier))
             {
-                item.lootTier = "[★] Loot Tier " + mappedTier + " (tarkov.dev)";
+                item.lootTier = "[★] Tier " + mappedTier; // Tarkov.dev mapped tier (star indicates external mapping)
                 return;
             }
 
@@ -791,7 +761,7 @@ namespace TarkovPriceViewer.UI
                     slotTier = "S";
 
                 if (slotTier != null)
-                    item.lootTier = "Loot Tier " + slotTier + " (per slot)";
+                    item.lootTier = "Tier " + slotTier; // Local per-slot tier (no star => not from tarkov.dev)
             }
         }
 
@@ -884,23 +854,13 @@ namespace TarkovPriceViewer.UI
 
         public void setTextColorsAPI(Item item)
         {
-            setPriceColor();
             setInraidColor();
 
             setOthersColorAPI(item);
             setCraftColorAPI(item);
             setLootTierColorAPI(item);
             setClassTierColorAPI(item);
-        }
-
-        public void setPriceColor()
-        {
-            MatchCollection mc = Program.money_filter.Matches(iteminfo_text.Text);
-            foreach (Match m in mc)
-            {
-                iteminfo_text.Select(m.Index, m.Length);
-                iteminfo_text.SelectionColor = Color.Gold;
-            }
+            setWorthHighlightAPI();
         }
 
         public void setInraidColor()
@@ -995,6 +955,52 @@ namespace TarkovPriceViewer.UI
             }
         }
 
+        private void setWorthHighlightAPI()
+        {
+            try
+            {
+                string text = iteminfo_text.Text;
+                if (string.IsNullOrEmpty(text))
+                    return;
+
+                int threshold = Program.GetWorthPerSlotThreshold();
+
+                // Look across the full text for patterns like:
+                //   123 456 ₽ ... (12 345 ₽/Slot)
+                var matches = Regex.Matches(text, @"(?<main>\d[\d.,]*\s*₽).*?\((?<slot>\d[\d.,]*\s*₽/Slot\))");
+
+                foreach (Match m in matches)
+                {
+                    var slotGroup = m.Groups["slot"]; // e.g. "12 345 ₽/Slot"
+                    var slotNumberMatch = Regex.Match(slotGroup.Value, @"\d[\d.,]*");
+                    if (!slotNumberMatch.Success)
+                        continue;
+
+                    string slotNumberRaw = slotNumberMatch.Value.Replace(".", string.Empty).Replace(",", string.Empty);
+                    if (!int.TryParse(slotNumberRaw, out int slotValue) || slotValue < threshold)
+                        continue;
+
+                    // Color main price (total) in green
+                    var mainGroup = m.Groups["main"];
+                    iteminfo_text.Select(mainGroup.Index, mainGroup.Length);
+                    iteminfo_text.SelectionColor = Color.LimeGreen;
+
+                    // Color per-slot price in green (including surrounding parentheses)
+                    int slotStart = Math.Max(0, slotGroup.Index - 1);
+                    int slotLength = Math.Min(text.Length - slotStart, slotGroup.Length + 2);
+                    iteminfo_text.Select(slotStart, slotLength);
+                    iteminfo_text.SelectionColor = Color.LimeGreen;
+                }
+
+                // Reset selection caret position
+                iteminfo_text.Select(text.Length, 0);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[Overlay] Error while highlighting worth prices: " + ex.Message);
+            }
+        }
+
         public void setClassTierColorAPI(Item item)
         {
             if (item.className != null)
@@ -1060,7 +1066,7 @@ namespace TarkovPriceViewer.UI
         {
             MatchCollection mc;
 
-            string[] vendors = { "Prapor", "Therapist", "Fence", "Skier", "Peacekeeper", "Mechanic", "Ragman", "Jaeger", "Flea Market",
+            string[] vendors = { "Prapor", "Therapist", "Fence", "Skier", "Peacekeeper", "Mechanic", "Ragman", "Jaeger", "Ref", "Flea Market",
                                  "Workbench", "Water Collector", "Lavatory", "Medstation", "Nutrition Unit", "Intelligence Center", "Booze Generator"};
             foreach (var text in vendors)
             {
@@ -1106,13 +1112,6 @@ namespace TarkovPriceViewer.UI
             {
                 iteminfo_text.Select(m.Index, m.Length);
                 iteminfo_text.SelectionColor = Color.Orange;
-            }
-
-            mc = new Regex("WORTH").Matches(iteminfo_text.Text);
-            foreach (Match m in mc)
-            {
-                iteminfo_text.Select(m.Index, m.Length);
-                iteminfo_text.SelectionColor = Color.LimeGreen;
             }
         }
 
@@ -1333,9 +1332,8 @@ namespace TarkovPriceViewer.UI
             if (!pricePerSlot.HasValue)
                 return string.Empty;
 
-            string worthSuffix = pricePerSlot.Value >= Program.GetWorthPerSlotThreshold() ? " WORTH" : string.Empty;
-
-            return String.Format(" ({0}{1}/slot){2}", pricePerSlot.Value.ToString("N0"), mainCurrency, worthSuffix);
+            // Simplified per-slot display to match overlay format: ({profitPerSlot} ₽/Slot)
+            return String.Format(" ({0}{1}/Slot)", pricePerSlot.Value.ToString("N0"), mainCurrency);
         }
     }
 

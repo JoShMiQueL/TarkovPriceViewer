@@ -62,7 +62,6 @@ namespace TarkovPriceViewer
         public const string WorthPerSlotThresholdKey = "WorthPerSlotThreshold";
         public const int WorthPerSlotThresholdDefault = 7500;
         public static readonly Regex inraid_filter = new Regex(@"in raid");
-        public static readonly Regex money_filter = new Regex(@"([\d,]+[₽\$€]|[₽\$€][\d,]+)");
         public static DateTime APILastUpdated = DateTime.Now.AddHours(-5);
         public static DateTime TarkovTrackerAPILastUpdated = DateTime.Now.AddHours(-5);
         public static TarkovAPI.Data tarkovAPI;
