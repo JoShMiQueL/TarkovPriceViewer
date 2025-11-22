@@ -104,6 +104,7 @@ namespace TarkovPriceViewer.Models
             public Ballistic ballistic = null;
             public string lootTier = null;
             public string className = null;
+            public string ammoTier = null;
             public String[] Data()
             {
                 return (new String[] {

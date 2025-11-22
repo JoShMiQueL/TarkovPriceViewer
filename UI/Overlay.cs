@@ -197,6 +197,7 @@ namespace TarkovPriceViewer.UI
                             string mainCurrency = Program.rouble.ToString();
                             string BestSellTo_vendorName = "";
                             string bestSellTraderLine = null;
+                            int? bestTraderAmmoPrice = null;
 
                             StringBuilder sb = new StringBuilder();
 
@@ -204,6 +205,11 @@ namespace TarkovPriceViewer.UI
                             SetLootTierPerSlot(item);
                             if (item.lootTier != null)
                                 sb.Append(String.Format("{0}", item.lootTier));
+
+                            // Ammo tier (based on ballistic penetration), shown for ammo items
+                            SetAmmoTier(item);
+                            if (item.ammoTier != null)
+                                sb.Append(String.Format("\n{0}", item.ammoTier));
 
                             // Name + last updated time on the right, using the same tab logic as prices
                             string itemLastUpdate = item.updated == null ? "" : Program.LastUpdated((DateTime)item.updated);
@@ -360,6 +366,12 @@ namespace TarkovPriceViewer.UI
                                             mainCurrency,
                                             pricePerSlotDetails,
                                             percentVsFleaSuffix);
+
+                                        // Cache best trader price for ammo examples
+                                        if (item.types != null && item.types.Exists(e => e.Equals("ammo")))
+                                        {
+                                            bestTraderAmmoPrice = traderPrice;
+                                        }
                                     }
                                 }
                             }
@@ -398,6 +410,38 @@ namespace TarkovPriceViewer.UI
                             if (bestSellTraderLine != null)
                             {
                                 sb.Append(bestSellTraderLine);
+                            }
+
+                            // Ammo-specific examples: show rough total price for common stack sizes
+                            // using Flea profit (after fee) and best trader price when available
+                            if (item.types != null && item.types.Exists(e => e.Equals("ammo")) && flea_profit > 0)
+                            {
+                                int baseFleaBulletPrice = flea_profit; // approximate per round after flea fee
+                                int[] stackExamples = new[] { 1, 10, 30, 60 };
+
+                                sb.Append("\n\nAmmo examples:");
+                                foreach (int count in stackExamples)
+                                {
+                                    int fleaTotal = baseFleaBulletPrice * count;
+
+                                    if (bestTraderAmmoPrice.HasValue && bestTraderAmmoPrice.Value > 0)
+                                    {
+                                        int traderTotal = bestTraderAmmoPrice.Value * count;
+                                        sb.Append(String.Format("\n  x{0}: {1}{2} (Flea, after fee) | {3}{4} (Trader)",
+                                            count,
+                                            fleaTotal.ToString("N0"),
+                                            mainCurrency,
+                                            traderTotal.ToString("N0"),
+                                            mainCurrency));
+                                    }
+                                    else
+                                    {
+                                        sb.Append(String.Format("\n  x{0}: {1}{2} (Flea, after fee)",
+                                            count,
+                                            fleaTotal.ToString("N0"),
+                                            mainCurrency));
+                                    }
+                                }
                             }
 
                             if (_settingsService?.Settings.Needs == true && item.usedInTasks.Count > 0 && _settingsService.Settings.UseTarkovTrackerApi && item.name != "Roubles" && item.name != "Euros" && item.name != "Dollars")
@@ -844,6 +888,67 @@ namespace TarkovPriceViewer.UI
             return price.Value / slotCount;
         }
 
+        private void SetAmmoTier(Item item)
+        {
+            if (item == null)
+                return;
+
+            if (item.types == null || !item.types.Exists(t => t == "ammo"))
+                return;
+
+            if (item.ballistic == null || string.IsNullOrWhiteSpace(item.ballistic.PP))
+                return;
+
+            if (!int.TryParse(item.ballistic.PP, out int pen))
+                return;
+
+            string tier = null;
+
+            // Simple penetration-based tiers inspired by community charts (e.g. eft-ammo.com)
+            if (pen >= 50)
+                tier = "S";
+            else if (pen >= 45)
+                tier = "A";
+            else if (pen >= 40)
+                tier = "B";
+            else if (pen >= 35)
+                tier = "C";
+            else if (pen >= 30)
+                tier = "D";
+            else if (pen >= 20)
+                tier = "E";
+            else
+                tier = "F";
+
+            string label;
+            switch (tier)
+            {
+                case "S":
+                    label = "Meta";
+                    break;
+                case "A":
+                    label = "Best";
+                    break;
+                case "B":
+                    label = "Very Good";
+                    break;
+                case "C":
+                    label = "Good";
+                    break;
+                case "D":
+                    label = "Budget";
+                    break;
+                case "E":
+                    label = "Low";
+                    break;
+                default: // "F"
+                    label = "Trash";
+                    break;
+            }
+
+            item.ammoTier = "Tier " + tier + " (" + label + ")";
+        }
+
         private void SetLootTierPerSlot(Item item)
         {
             if (item == null)
@@ -981,7 +1086,7 @@ namespace TarkovPriceViewer.UI
             setCraftColorAPI(item);
             setLootTierColorAPI(item);
             setClassTierColorAPI(item);
-            setWorthHighlightAPI();
+            setWorthHighlightAPI(item);
         }
 
         public void setInraidColor()
@@ -1076,7 +1181,7 @@ namespace TarkovPriceViewer.UI
             }
         }
 
-        private void setWorthHighlightAPI()
+        private void setWorthHighlightAPI(Item item)
         {
             try
             {
@@ -1085,6 +1190,24 @@ namespace TarkovPriceViewer.UI
                     return;
 
                 int threshold = Program.GetWorthPerSlotThreshold();
+
+                // For ammo items, use a separate worth threshold so typical bullet prices
+                // (e.g. 800–1500 ₽/round) can still trigger worth highlighting.
+                try
+                {
+                    if (item != null && item.types != null && item.types.Exists(t => t == "ammo"))
+                    {
+                        int ammoThreshold = _settingsService?.Settings.AmmoWorthThreshold ?? 0;
+                        if (ammoThreshold > 0)
+                        {
+                            threshold = ammoThreshold;
+                        }
+                    }
+                }
+                catch
+                {
+                    // If anything goes wrong, fall back to the global threshold
+                }
 
                 // Look across the full text for patterns like:
                 //   123 456 ₽ ... (12 345 ₽/Slot)
@@ -1213,7 +1336,7 @@ namespace TarkovPriceViewer.UI
                 }
             }
 
-            string[] darkOrange = { "Barters:", "Crafts:", "Use Location:", "]", "[", "Used in Task", "Needed for Hideout", "+", "-->" };
+            string[] darkOrange = { "Barters:", "Crafts:", "Use Location:", "]", "[", "Used in Task", "Needed for Hideout", "+", "-->", "Ammo examples:" };
             foreach (var text in darkOrange)
             {
                 mc = new Regex(Regex.Escape(text)).Matches(iteminfo_text.Text);
