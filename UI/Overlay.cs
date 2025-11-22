@@ -205,9 +205,11 @@ namespace TarkovPriceViewer.UI
                             if (item.lootTier != null)
                                 sb.Append(String.Format("{0}", item.lootTier));
 
-                            // Name + last updated time on the right
+                            // Name + last updated time on the right, using the same tab logic as prices
                             string itemLastUpdate = item.updated == null ? "" : Program.LastUpdated((DateTime)item.updated);
-                            sb.Append(String.Format("\n{0}\t\t{1}", item.name, itemLastUpdate));
+                            string nameLabel = item.name;
+                            string nameTabs = GetTabsForLabel(nameLabel);
+                            sb.Append(String.Format("\n{0}{1}{2}", nameLabel, nameTabs, itemLastUpdate));
 
                             // Helmet/armour class
                             if (item.properties != null && item.properties._class != null)
@@ -235,22 +237,54 @@ namespace TarkovPriceViewer.UI
                                 flea_profit = item.lastLowPrice.Value - item.fleaMarketFee.Value;
                             }
 
-                            // Find best trader to sell to
+                            // Find best trader to sell to (Flea vs trader, using configurable per-slot tolerance)
                             if (item.sellFor.Count > 0)
                             {
                                 List<SellFor> list = new List<SellFor>(item.sellFor);
-                                List<SellFor> sortedVendor = new List<SellFor>(list.OrderByDescending(p => p.priceRUB));
-                                var lastSortedVendor = item.sellFor[0];
+                                var fleaVendor = list.FirstOrDefault(p => p.vendor.name == "Flea Market");
+                                var bestTrader = list.Where(p => p.vendor.name != "Flea Market").OrderByDescending(p => p.priceRUB).FirstOrDefault();
 
-                                if (sortedVendor[0].vendor.name == "Flea Market" && sortedVendor.Count > 1 && flea_profit > 0)
+                                SellFor lastSortedVendor = null;
+
+                                // Try per-slot comparison between Flea (using flea_profit) and best trader
+                                if (fleaVendor != null && bestTrader != null && flea_profit > 0)
                                 {
-                                    if (flea_profit > sortedVendor[1].priceRUB.Value)
+                                    decimal? fleaPerSlot = GetValuePerSlot(item, flea_profit);
+                                    decimal? traderPerSlot = GetValuePerSlot(item, bestTrader.priceRUB);
+
+                                    if (fleaPerSlot.HasValue && traderPerSlot.HasValue)
                                     {
-                                        lastSortedVendor = sortedVendor[0];
+                                        int tolerancePercent = _settingsService?.Settings.FleaTraderProfitTolerancePercent ?? 0;
+                                        decimal factor = tolerancePercent / 100m;
+
+                                        // If trader per-slot is at least (tolerancePercent%) of Flea per-slot, prefer trader
+                                        if (traderPerSlot.Value >= fleaPerSlot.Value * factor)
+                                        {
+                                            lastSortedVendor = bestTrader;
+                                        }
+                                        else
+                                        {
+                                            lastSortedVendor = fleaVendor;
+                                        }
                                     }
-                                    else
+                                }
+
+                                // Fallback: original max-price logic if per-slot comparison not possible
+                                if (lastSortedVendor == null)
+                                {
+                                    List<SellFor> sortedVendor = new List<SellFor>(list.OrderByDescending(p => p.priceRUB));
+                                    lastSortedVendor = sortedVendor[0];
+
+                                    if (sortedVendor[0].vendor.name == "Flea Market" && sortedVendor.Count > 1 && flea_profit > 0)
                                     {
-                                        lastSortedVendor = sortedVendor[1];
+                                        if (flea_profit > sortedVendor[1].priceRUB.Value)
+                                        {
+                                            lastSortedVendor = sortedVendor[0];
+                                        }
+                                        else
+                                        {
+                                            lastSortedVendor = sortedVendor[1];
+                                        }
                                     }
                                 }
 
@@ -260,16 +294,24 @@ namespace TarkovPriceViewer.UI
                                 if (lastSortedVendor.vendor.name == "Flea Market" && item.lastLowPrice != null)
                                     vendorPrice = flea_profit;
 
-                                if (lastSortedVendor.vendor.minTraderLevel != null)
-                                    BestSellTo_vendorName += " LL" + lastSortedVendor.vendor.minTraderLevel;
+                                // if (lastSortedVendor.vendor.minTraderLevel != null)
+                                //     BestSellTo_vendorName += " LL" + lastSortedVendor.vendor.minTraderLevel;
 
                                 if (vendorPrice > 0)
                                 {
                                     string pricePerSlotDetails = GetPricePerSlotDetails(item, vendorPrice, mainCurrency);
                                     // Show 'Flea' when best is Flea Market, otherwise show the actual trader name (with LL if present)
                                     string profitSource = lastSortedVendor.vendor.name == "Flea Market" ? "Flea" : BestSellTo_vendorName;
+                                    string profitLabel = String.Format("Profit [{0}]", profitSource);
+                                    string profitTabs = GetTabsForLabel(profitLabel);
+
                                     sb = RemoveTrailingLineBreaks(sb);
-                                    sb.Append(String.Format("\n\nProfit [{0}]\t\t{1}{2} {3}", profitSource, vendorPrice.ToString("N0"), mainCurrency, pricePerSlotDetails));
+                                    sb.Append(String.Format("\n\n{0}{1}{2}{3} {4}",
+                                        profitLabel,
+                                        profitTabs,
+                                        vendorPrice.ToString("N0"),
+                                        mainCurrency,
+                                        pricePerSlotDetails));
                                     sb.Append("\n------------------------------------------------------------");
                                 }
                             }
@@ -292,11 +334,32 @@ namespace TarkovPriceViewer.UI
                                     if (traderPrice > 0)
                                     {
                                         string pricePerSlotDetails = GetPricePerSlotDetails(item, traderPrice, mainCurrency);
-                                        bestSellTraderLine = String.Format("\n{0}\t\t{1}{2}{3}",
+                                        string traderTabs = GetTabsForLabel(traderName);
+
+                                        // Compute % of trader per-slot vs Flea per-slot, if possible
+                                        string percentVsFleaSuffix = string.Empty;
+                                        if (flea_profit > 0)
+                                        {
+                                            decimal? fleaPerSlot = GetValuePerSlot(item, flea_profit);
+                                            decimal? traderPerSlot = GetValuePerSlot(item, traderPrice);
+                                            if (fleaPerSlot.HasValue && traderPerSlot.HasValue && fleaPerSlot.Value > 0)
+                                            {
+                                                decimal ratio = (traderPerSlot.Value / fleaPerSlot.Value) * 100m;
+                                                int tolerancePercent = _settingsService?.Settings.FleaTraderProfitTolerancePercent ?? 0;
+                                                percentVsFleaSuffix = String.Format(" ({0:F0}% of Flea, min {1}%)", ratio, tolerancePercent);
+                                            }
+                                        }
+
+                                        // Use one less padding unit than the raw label padding to keep columns aligned with other price lines
+                                        string traderTabsForLine = traderTabs.Length > 1 ? traderTabs.Substring(0, traderTabs.Length - 1) : traderTabs;
+
+                                        bestSellTraderLine = String.Format("\n{0}{1}{2}{3}{4}{5}",
                                             traderName,
+                                            traderTabsForLine,
                                             traderPrice.ToString("N0"),
                                             mainCurrency,
-                                            pricePerSlotDetails);
+                                            pricePerSlotDetails,
+                                            percentVsFleaSuffix);
                                     }
                                 }
                             }
@@ -304,12 +367,30 @@ namespace TarkovPriceViewer.UI
                             if (_settingsService?.Settings.ShowLastPrice == true && item.lastLowPrice != null)
                             {
                                 sb = RemoveTrailingLineBreaks(sb);
-                                sb.Append(String.Format("\nPrice:\t\t\t{0}{1}", ((int)item.lastLowPrice).ToString("N0"), mainCurrency));
+                                string priceLabel = "Price:";
+                                string priceTabs = GetTabsForLabel(priceLabel);
+                                int lastPrice = (int)item.lastLowPrice;
+                                string lastPricePerSlot = GetPricePerSlotDetails(item, lastPrice, mainCurrency);
+                                sb.Append(String.Format("\n{0}{1}{2}{3}{4}",
+                                    priceLabel,
+                                    priceTabs,
+                                    lastPrice.ToString("N0"),
+                                    mainCurrency,
+                                    lastPricePerSlot));
                             }
 
                             if (_settingsService?.Settings.ShowDayPrice == true && item.avg24hPrice != null && item.avg24hPrice.Value > 0)
                             {
-                                sb.Append(String.Format("\nAvg. Day Price:\t\t{0}{1}", item.avg24hPrice.Value.ToString("N0"), mainCurrency));
+                                string dayLabel = "Avg. Day Price:";
+                                string dayTabs = GetTabsForLabel(dayLabel);
+                                int avgDay = item.avg24hPrice.Value;
+                                string avgDayPerSlot = GetPricePerSlotDetails(item, avgDay, mainCurrency);
+                                sb.Append(String.Format("\n{0}{1}{2}{3}{4}",
+                                    dayLabel,
+                                    dayTabs,
+                                    avgDay.ToString("N0"),
+                                    mainCurrency,
+                                    avgDayPerSlot));
                             }
 
                             sb.Append("\n------------------------------------------------------------");
@@ -622,6 +703,46 @@ namespace TarkovPriceViewer.UI
                 }
             };
             Invoke(show);
+        }
+
+        private string GetTabsForLabel(string label)
+        {
+            // Use spaces instead of tabs to align prices to a common visual column,
+            // based on the actual pixel width of the label with the current font.
+
+            if (label == null)
+                label = string.Empty;
+
+            // Target width in pixels from the left edge of the label to where prices should start
+            const float targetWidthPx = 220f; // tweakable visual column for prices
+
+            try
+            {
+                using (var g = iteminfo_text.CreateGraphics())
+                {
+                    var font = iteminfo_text.Font;
+
+                    float labelWidth = TextRenderer.MeasureText(g, label, font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width;
+                    float spaceWidth = TextRenderer.MeasureText(g, " ", font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width;
+
+                    if (spaceWidth <= 0)
+                        return " ";
+
+                    float remaining = targetWidthPx - labelWidth;
+
+                    // Always ensure at least 1 space between label and price
+                    int spaceCount = (int)Math.Floor(remaining / spaceWidth);
+                    if (spaceCount < 1)
+                        spaceCount = 1;
+
+                    return new string(' ', spaceCount);
+                }
+            }
+            catch
+            {
+                // Fallback: at least one space if measurement fails
+                return " ";
+            }
         }
 
         public void IncrementCurrentItemCount()
@@ -971,6 +1092,20 @@ namespace TarkovPriceViewer.UI
 
                 foreach (Match m in matches)
                 {
+                    // Determine the full line for this match, to decide whether to highlight it
+                    int mainIndex = m.Groups["main"].Index;
+                    int lineStartIdx = text.LastIndexOf('\n', mainIndex);
+                    if (lineStartIdx < 0) lineStartIdx = 0; else lineStartIdx++;
+                    int lineEndIdx = text.IndexOf('\n', lineStartIdx);
+                    if (lineEndIdx < 0) lineEndIdx = text.Length;
+
+                    string line = text.Substring(lineStartIdx, lineEndIdx - lineStartIdx);
+
+                    // Skip informational lines like Price and Avg. Day Price; only highlight
+                    // Profit [...] and trader sell lines.
+                    if (line.Contains("Price:") || line.Contains("Avg. Day Price:"))
+                        continue;
+
                     var slotGroup = m.Groups["slot"]; // e.g. "12 345 ₽/Slot"
                     var slotNumberMatch = Regex.Match(slotGroup.Value, @"\d[\d.,]*");
                     if (!slotNumberMatch.Success)

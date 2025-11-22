@@ -30,5 +30,6 @@ namespace TarkovPriceViewer.Configuration
         public string Language { get; set; } = "en";
         public string Mode { get; set; } = "regular";
         public int WorthPerSlotThreshold { get; set; } = 7500;
+        public int FleaTraderProfitTolerancePercent { get; set; } = 85;
     }
 }
