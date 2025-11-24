@@ -49,7 +49,12 @@ namespace TarkovPriceViewer.UI
                         case 5:
                             Program.AppSettings.DecreaseTrackerCountKey = (int)e.KeyCode;
                             break;
+                        case 6:
+                            Program.AppSettings.ToggleFavoriteItemKey = (int)e.KeyCode;
+                            break;
                     }
+                    // Persist key changes immediately so they survive future loads
+                    Program.SaveSettings();
                     if (Owner != null)
                     {
                         ((MainForm)Owner).ChangePressKeyData(e.KeyCode);
@@ -101,8 +106,13 @@ namespace TarkovPriceViewer.UI
                     case 5:
                         Program.AppSettings.DecreaseTrackerCountKey = mouseCode;
                         break;
+                    case 6:
+                        Program.AppSettings.ToggleFavoriteItemKey = mouseCode;
+                        break;
                 }
 
+                // Persist mouse-based key changes as well
+                Program.SaveSettings();
                 if (Owner != null)
                 {
                     ((MainForm)Owner).ChangePressKeyData(null);

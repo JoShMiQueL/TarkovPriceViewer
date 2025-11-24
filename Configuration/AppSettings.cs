@@ -32,5 +32,7 @@ namespace TarkovPriceViewer.Configuration
         public int ItemWorthThreshold { get; set; } = 7500;
         public int AmmoWorthThreshold { get; set; } = 800;
         public int FleaTraderProfitTolerancePercent { get; set; } = 85;
+        public int ToggleFavoriteItemKey { get; set; } = 118;
+        public List<string> FavoriteItems { get; set; } = new List<string>();
     }
 }

@@ -170,6 +170,54 @@ namespace TarkovPriceViewer.UI
             iteminfo_ball.Refresh();
         }
 
+        public void ToggleFavoriteCurrentItem()
+        {
+            lock (_lock)
+            {
+                if (_currentItem == null || string.IsNullOrEmpty(_currentItem.name) || _settingsService == null)
+                {
+                    return;
+                }
+
+                try
+                {
+                    var settings = _settingsService.Settings;
+                    if (settings.FavoriteItems == null)
+                    {
+                        settings.FavoriteItems = new List<string>();
+                    }
+
+                    var list = settings.FavoriteItems;
+                    int existingIndex = list.FindIndex(n => string.Equals(n, _currentItem.name, StringComparison.OrdinalIgnoreCase));
+                    if (existingIndex >= 0)
+                    {
+                        list.RemoveAt(existingIndex);
+                    }
+                    else
+                    {
+                        // Store the canonical item name from the API
+                        list.Add(_currentItem.name);
+                    }
+
+                    _settingsService.Save();
+
+                    try
+                    {
+                        var token = CancellationToken.None;
+                        Invoke(new Action(() => ShowInfoAPI(_currentItem, token)));
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("[Overlay] Error while refreshing favorite item state: " + ex.Message);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("[Overlay] Error while toggling favorite item: " + ex.Message);
+                }
+            }
+        }
+
         public void ShowInfoAPI(Item item, CancellationToken cts_one)
         {
             Action show = delegate ()
@@ -213,7 +261,21 @@ namespace TarkovPriceViewer.UI
 
                             // Name + last updated time on the right, using the same tab logic as prices
                             string itemLastUpdate = item.updated == null ? "" : Program.LastUpdated((DateTime)item.updated);
+
+                            // Append [FAVORITE] suffix when this item is in the favorites list
                             string nameLabel = item.name;
+                            try
+                            {
+                                var favorites = _settingsService?.Settings?.FavoriteItems;
+                                if (favorites != null && favorites.Any(n => string.Equals(n, item.name, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    nameLabel += " [FAVORITE]";
+                                }
+                            }
+                            catch
+                            {
+                            }
+
                             string nameTabs = GetTabsForLabel(nameLabel);
                             sb.Append(String.Format("\n{0}{1}{2}", nameLabel, nameTabs, itemLastUpdate));
 
@@ -1483,6 +1545,14 @@ namespace TarkovPriceViewer.UI
                     iteminfo_text.Select(m.Index, m.Length);
                     iteminfo_text.SelectionColor = Color.DarkOrange;
                 }
+            }
+
+            // Highlight the FAVORITE tag very visibly
+            mc = new Regex(Regex.Escape("[FAVORITE]")).Matches(iteminfo_text.Text);
+            foreach (Match m in mc)
+            {
+                iteminfo_text.Select(m.Index, m.Length);
+                iteminfo_text.SelectionColor = Color.Gold;
             }
 
             // Highlight ammo example labels (x1:, x10:, etc.) for better readability

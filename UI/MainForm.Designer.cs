@@ -36,6 +36,9 @@ namespace TarkovPriceViewer.UI
 			trayshow = new System.Windows.Forms.ToolStripMenuItem();
 			trayexit = new System.Windows.Forms.ToolStripMenuItem();
 			panel1 = new System.Windows.Forms.Panel();
+			ToggleFavorite_Label = new System.Windows.Forms.Label();
+			ProfitVsFleaToleranceLabel = new System.Windows.Forms.Label();
+			ProfitVsFleaTolerance = new System.Windows.Forms.TrackBar();
 			label7 = new System.Windows.Forms.Label();
 			AmmoWorthThreshold = new System.Windows.Forms.NumericUpDown();
 			label6 = new System.Windows.Forms.Label();
@@ -95,10 +98,10 @@ namespace TarkovPriceViewer.UI
 			languageBox = new System.Windows.Forms.ComboBox();
 			label3 = new System.Windows.Forms.Label();
 			modeBox = new System.Windows.Forms.ComboBox();
-			ProfitVsFleaTolerance = new System.Windows.Forms.TrackBar();
-			ProfitVsFleaToleranceLabel = new System.Windows.Forms.Label();
+			ToggleFavorite_Button = new System.Windows.Forms.Button();
 			TrayMenu.SuspendLayout();
 			panel1.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)ProfitVsFleaTolerance).BeginInit();
 			((System.ComponentModel.ISupportInitialize)AmmoWorthThreshold).BeginInit();
 			((System.ComponentModel.ISupportInitialize)worthThresholdNumeric).BeginInit();
 			((System.ComponentModel.ISupportInitialize)TransParent_Bar).BeginInit();
@@ -109,7 +112,6 @@ namespace TarkovPriceViewer.UI
 			panel6.SuspendLayout();
 			panel7.SuspendLayout();
 			panel8.SuspendLayout();
-			((System.ComponentModel.ISupportInitialize)ProfitVsFleaTolerance).BeginInit();
 			SuspendLayout();
 			// 
 			// TrayIcon
@@ -142,6 +144,8 @@ namespace TarkovPriceViewer.UI
 			// 
 			// panel1
 			// 
+			panel1.Controls.Add(ToggleFavorite_Button);
+			panel1.Controls.Add(ToggleFavorite_Label);
 			panel1.Controls.Add(ProfitVsFleaToleranceLabel);
 			panel1.Controls.Add(ProfitVsFleaTolerance);
 			panel1.Controls.Add(label7);
@@ -161,8 +165,46 @@ namespace TarkovPriceViewer.UI
 			panel1.Location = new System.Drawing.Point(12, 166);
 			panel1.Margin = new System.Windows.Forms.Padding(4);
 			panel1.Name = "panel1";
-			panel1.Size = new System.Drawing.Size(296, 310);
+			panel1.Size = new System.Drawing.Size(296, 362);
 			panel1.TabIndex = 1;
+			// 
+			// ToggleFavorite_Label
+			// 
+			ToggleFavorite_Label.AutoSize = true;
+			ToggleFavorite_Label.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 129);
+			ToggleFavorite_Label.Location = new System.Drawing.Point(6, 317);
+			ToggleFavorite_Label.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			ToggleFavorite_Label.Name = "ToggleFavorite_Label";
+			ToggleFavorite_Label.Size = new System.Drawing.Size(133, 15);
+			ToggleFavorite_Label.TabIndex = 14;
+			ToggleFavorite_Label.Text = "Toggle Favorite Key";
+			// 
+			// ToggleFavorite_Button
+			// 
+			ToggleFavorite_Button.Click += Overlay_Button_Click;
+			// 
+			// ProfitVsFleaToleranceLabel
+			// 
+			ProfitVsFleaToleranceLabel.AutoSize = true;
+			ProfitVsFleaToleranceLabel.Location = new System.Drawing.Point(133, 278);
+			ProfitVsFleaToleranceLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			ProfitVsFleaToleranceLabel.Name = "ProfitVsFleaToleranceLabel";
+			ProfitVsFleaToleranceLabel.Size = new System.Drawing.Size(29, 15);
+			ProfitVsFleaToleranceLabel.TabIndex = 13;
+			ProfitVsFleaToleranceLabel.Text = "80%";
+			// 
+			// ProfitVsFleaTolerance
+			// 
+			ProfitVsFleaTolerance.Location = new System.Drawing.Point(9, 275);
+			ProfitVsFleaTolerance.Margin = new System.Windows.Forms.Padding(4);
+			ProfitVsFleaTolerance.Maximum = 100;
+			ProfitVsFleaTolerance.Name = "ProfitVsFleaTolerance";
+			ProfitVsFleaTolerance.Size = new System.Drawing.Size(124, 45);
+			ProfitVsFleaTolerance.TabIndex = 12;
+			ProfitVsFleaTolerance.TabStop = false;
+			ProfitVsFleaTolerance.TickFrequency = 5;
+			ProfitVsFleaTolerance.Value = 80;
+			ProfitVsFleaTolerance.Scroll += ProfitVsFleaTolerance_Scroll;
 			// 
 			// label7
 			// 
@@ -851,29 +893,16 @@ namespace TarkovPriceViewer.UI
 			modeBox.Size = new System.Drawing.Size(69, 23);
 			modeBox.TabIndex = 20;
 			// 
-			// ProfitVsFleaTolerance
+			// ToggleFavorite_Button
 			// 
-			ProfitVsFleaTolerance.Location = new System.Drawing.Point(9, 275);
-			ProfitVsFleaTolerance.Margin = new System.Windows.Forms.Padding(4);
-			ProfitVsFleaTolerance.Maximum = 100;
-			ProfitVsFleaTolerance.Minimum = 0;
-			ProfitVsFleaTolerance.Name = "ProfitVsFleaTolerance";
-			ProfitVsFleaTolerance.Size = new System.Drawing.Size(124, 45);
-			ProfitVsFleaTolerance.TabIndex = 12;
-			ProfitVsFleaTolerance.TabStop = false;
-			ProfitVsFleaTolerance.TickFrequency = 5;
-			ProfitVsFleaTolerance.Value = 80;
-			ProfitVsFleaTolerance.Scroll += ProfitVsFleaTolerance_Scroll;
-			// 
-			// ProfitVsFleaToleranceLabel
-			// 
-			ProfitVsFleaToleranceLabel.AutoSize = true;
-			ProfitVsFleaToleranceLabel.Location = new System.Drawing.Point(133, 278);
-			ProfitVsFleaToleranceLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-			ProfitVsFleaToleranceLabel.Name = "ProfitVsFleaToleranceLabel";
-			ProfitVsFleaToleranceLabel.Size = new System.Drawing.Size(35, 15);
-			ProfitVsFleaToleranceLabel.TabIndex = 13;
-			ProfitVsFleaToleranceLabel.Text = "80%";
+			ToggleFavorite_Button.Location = new System.Drawing.Point(153, 311);
+			ToggleFavorite_Button.Margin = new System.Windows.Forms.Padding(4);
+			ToggleFavorite_Button.Name = "ToggleFavorite_Button";
+			ToggleFavorite_Button.Size = new System.Drawing.Size(128, 29);
+			ToggleFavorite_Button.TabIndex = 15;
+			ToggleFavorite_Button.TabStop = false;
+			ToggleFavorite_Button.Text = "F7";
+			ToggleFavorite_Button.UseVisualStyleBackColor = true;
 			// 
 			// MainForm
 			// 
@@ -910,6 +939,7 @@ namespace TarkovPriceViewer.UI
 			TrayMenu.ResumeLayout(false);
 			panel1.ResumeLayout(false);
 			panel1.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)ProfitVsFleaTolerance).EndInit();
 			((System.ComponentModel.ISupportInitialize)AmmoWorthThreshold).EndInit();
 			((System.ComponentModel.ISupportInitialize)worthThresholdNumeric).EndInit();
 			((System.ComponentModel.ISupportInitialize)TransParent_Bar).EndInit();
@@ -926,7 +956,6 @@ namespace TarkovPriceViewer.UI
 			panel7.PerformLayout();
 			panel8.ResumeLayout(false);
 			panel8.PerformLayout();
-			((System.ComponentModel.ISupportInitialize)ProfitVsFleaTolerance).EndInit();
 			ResumeLayout(false);
 			PerformLayout();
 
@@ -999,5 +1028,7 @@ namespace TarkovPriceViewer.UI
 		private System.Windows.Forms.Label label6;
 		private System.Windows.Forms.Label ProfitVsFleaToleranceLabel;
 		private System.Windows.Forms.TrackBar ProfitVsFleaTolerance;
+		private System.Windows.Forms.Label ToggleFavorite_Label;
+		private System.Windows.Forms.Button ToggleFavorite_Button;
 	}
 }

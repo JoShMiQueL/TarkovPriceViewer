@@ -233,6 +233,7 @@ namespace TarkovPriceViewer.UI
 			CompareOverlay_Button.Text = GetKeybindText(s.CompareOverlayKey.ToString(CultureInfo.InvariantCulture));
 			IncreaseTrackerCountButton.Text = GetKeybindText(s.IncreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
 			DecreaseTrackerCountButton.Text = GetKeybindText(s.DecreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
+			ToggleFavorite_Button.Text = GetKeybindText(s.ToggleFavoriteItemKey.ToString(CultureInfo.InvariantCulture));
 			TransParent_Bar.Value = s.OverlayTransparent;
 			TransParent_Text.Text = s.OverlayTransparent.ToString(CultureInfo.InvariantCulture) + "%";
 			TarkovTrackerCheckBox.Checked = s.UseTarkovTrackerApi;
@@ -379,6 +380,7 @@ namespace TarkovPriceViewer.UI
 				int hideKey = Program.AppSettings.HideOverlayKey;
 				int increaseTrackerKey = Program.AppSettings.IncreaseTrackerCountKey;
 				int decreaseTrackerKey = Program.AppSettings.DecreaseTrackerCountKey;
+				int toggleFavoriteKey = Program.AppSettings.ToggleFavoriteItemKey;
 
 				if (code == showKey)
 				{
@@ -408,6 +410,10 @@ namespace TarkovPriceViewer.UI
 				else if (code == decreaseTrackerKey && decreaseTrackerKey != 0)
 				{
 					overlay_info.DecrementCurrentItemCount();
+				}
+				else if (code == toggleFavoriteKey && toggleFavoriteKey != 0)
+				{
+					overlay_info.ToggleFavoriteCurrentItem();
 				}
 				else if (code == hideKey
 					|| code == 9 //tab
@@ -942,6 +948,7 @@ namespace TarkovPriceViewer.UI
 					CompareOverlay_Button.Text = GetKeybindText(s.CompareOverlayKey.ToString(CultureInfo.InvariantCulture));
 					IncreaseTrackerCountButton.Text = GetKeybindText(s.IncreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
 					DecreaseTrackerCountButton.Text = GetKeybindText(s.DecreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
+					ToggleFavorite_Button.Text = GetKeybindText(s.ToggleFavoriteItemKey.ToString(CultureInfo.InvariantCulture));
 				}
 				press_key_control = null;
 			}
@@ -970,6 +977,10 @@ namespace TarkovPriceViewer.UI
 			else if (press_key_control == DecreaseTrackerCountButton)
 			{
 				selected = 5;
+			}
+			else if (press_key_control == ToggleFavorite_Button)
+			{
+				selected = 6;
 			}
 			if (selected != 0)
 			{
