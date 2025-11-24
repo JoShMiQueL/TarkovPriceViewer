@@ -821,7 +821,7 @@ namespace TarkovPriceViewer.UI
 
 			try
 			{
-				AppLogger.Info("MainForm.getPaddleModel", "Download the paddle language model.");
+				AppLogger.Info("MainForm.getPaddleModel", "Ensure PaddleOCR language model in memory (load from cache or download if needed).");
 				RecognizationModel model;
 				var lang = _settingsService.Settings.Language;
 				if (lang == "ko")

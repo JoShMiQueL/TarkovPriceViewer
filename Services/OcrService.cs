@@ -92,7 +92,7 @@ namespace TarkovPriceViewer.Services
                 {
                     if (_languageModel == null)
                     {
-                        AppLogger.Info("OcrService.EnsureModel", "Download the paddle language model.");
+                        AppLogger.Info("OcrService.EnsureModel", "Ensure PaddleOCR language model (use cached files or download if needed).");
                         _languageModel = model;
                     }
                 }
