@@ -120,20 +120,24 @@ namespace TarkovPriceViewer
                 Debug.WriteLine("--> Error updating Tarkov API via service at startup: " + ex.Message);
             }
 
-            // Eagerly preload PaddleOCR so the first scan does not need to download/initialize the model
-            try
+            // Eagerly preload PaddleOCR in the background so the first scan does not need to download/initialize the model,
+            // but do not block the main UI thread while the model is being fetched.
+            Task.Run(() =>
             {
-                var lang = _settingsService.Settings.Language;
-                if (string.IsNullOrWhiteSpace(lang))
+                try
                 {
-                    lang = "en";
+                    var lang = _settingsService.Settings.Language;
+                    if (string.IsNullOrWhiteSpace(lang))
+                    {
+                        lang = "en";
+                    }
+                    _ocrService.EnsureInitialized(lang);
                 }
-                _ocrService.EnsureInitialized(lang);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("--> Error preloading PaddleOCR at startup: " + ex.Message);
-            }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("--> Error preloading PaddleOCR at startup (background): " + ex.Message);
+                }
+            });
 
             if (AppSettings.UseTarkovTrackerApi)
             {
