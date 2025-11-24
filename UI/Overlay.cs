@@ -442,11 +442,25 @@ namespace TarkovPriceViewer.UI
                             {
                                 sb = RemoveTrailingLineBreaks(sb);
                                 string priceLabel = "Price";
-                                string priceTabs = GetTabsForLabel(priceLabel);
                                 int lastPrice = (int)item.lastLowPrice;
                                 string lastPricePerSlot = GetPricePerSlotDetails(item, lastPrice, mainCurrency);
+                                string trendBlock = string.Empty;
+                                if (item.avg24hPrice != null && item.avg24hPrice.Value > 0)
+                                {
+                                    trendBlock = BuildTrendBlock(lastPrice, item.avg24hPrice.Value);
+                                    if (!string.IsNullOrEmpty(trendBlock))
+                                    {
+                                        trendBlock += " ";
+                                    }
+                                }
+
+                                string labelWithTrend = string.IsNullOrEmpty(trendBlock)
+                                    ? priceLabel
+                                    : priceLabel + " " + trendBlock;
+                                string priceTabs = GetTabsForLabel(labelWithTrend);
+
                                 sb.Append(String.Format("\n{0}{1}{2}{3}{4}",
-                                    priceLabel,
+                                    labelWithTrend,
                                     priceTabs,
                                     lastPrice.ToString("N0"),
                                     mainCurrency,
@@ -884,6 +898,36 @@ namespace TarkovPriceViewer.UI
                             }
 
                             setTextColorsAPI(item);
+                            try
+                            {
+                                string fullTrendText = iteminfo_text.Text;
+                                var trendMatches = Regex.Matches(fullTrendText, "[▲▼]");
+                                foreach (Match m in trendMatches)
+                                {
+                                    int start = m.Index;
+                                    int end = fullTrendText.IndexOf(')', start);
+                                    if (end == -1)
+                                    {
+                                        end = start; // fallback: solo la flecha
+                                    }
+
+                                    int length = Math.Max(1, end - start + 1);
+                                    iteminfo_text.Select(start, length);
+
+                                    if (m.Value == "▲")
+                                    {
+                                        iteminfo_text.SelectionColor = Color.LimeGreen;
+                                    }
+                                    else if (m.Value == "▼")
+                                    {
+                                        iteminfo_text.SelectionColor = Color.Red;
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                                // ignore coloring errors for trend arrows
+                            }
                             if (item.ballistic != null)
                             {
                                 foreach (Ballistic b in item.ballistic.Calibarlist)
@@ -899,6 +943,24 @@ namespace TarkovPriceViewer.UI
                 }
             };
             Invoke(show);
+        }
+
+        private string BuildTrendBlock(decimal current, decimal baseline, decimal thresholdPercent = 5m)
+        {
+            if (baseline == 0m)
+                return string.Empty;
+
+            decimal diff = current - baseline;
+            if (Math.Abs(diff) < 1m)
+                return string.Empty;
+
+            decimal diffPercent = (diff / baseline) * 100m;
+            if (Math.Abs(diffPercent) < thresholdPercent)
+                return string.Empty;
+
+            string symbol = diff > 0 ? "▲" : "▼";
+            string sign = diffPercent > 0 ? "+" : string.Empty;
+            return symbol + $" ({sign}{diffPercent:F0}%)";
         }
 
         private string GetTabsForLabel(string label)
