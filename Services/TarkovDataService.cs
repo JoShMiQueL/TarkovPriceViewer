@@ -6,7 +6,6 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using TarkovPriceViewer.Models;
-using System.Diagnostics;
 
 namespace TarkovPriceViewer.Services
 {
@@ -49,7 +48,7 @@ namespace TarkovPriceViewer.Services
             {
                 try
                 {
-                    Debug.WriteLine("\n--> Updating API...");
+                    AppLogger.Info("TarkovDataService.UpdateItemListAPI", "Updating TarkovDev API...");
                     // Construct query
                     var queryDictionary = new Dictionary<string, string>
                     {
@@ -81,12 +80,12 @@ namespace TarkovPriceViewer.Services
 
                     LastUpdated = DateTime.Now;
                     IsLoaded = true;
-                    Debug.WriteLine("\n--> TarkovDev API Updated!");
+                    AppLogger.Info("TarkovDataService.UpdateItemListAPI", "TarkovDev API Updated");
                     File.WriteAllText(API_FILE_PATH, responseContent);
                 }
                 catch (Exception ex)
                 {
-                     Debug.WriteLine("--> Error trying to update Tarkov API: " + ex.Message);
+                     AppLogger.Error("TarkovDataService.UpdateItemListAPI", "Error trying to update Tarkov API", ex);
                      // Retry logic could go here, or just let it fail for now
                 }
             }
@@ -96,7 +95,7 @@ namespace TarkovPriceViewer.Services
             }
             else
             {
-                 Debug.WriteLine("--> No need to update TarkovDev API! \n--> " + GetLastUpdatedText() + "\n\n");
+                 AppLogger.Info("TarkovDataService.UpdateItemListAPI", "No need to update TarkovDev API! " + GetLastUpdatedText());
             }
         }
 
@@ -121,7 +120,7 @@ namespace TarkovPriceViewer.Services
                             // ignore size errors, we'll still log the path
                         }
 
-                        Debug.WriteLine($"\n--> TarkovAPI cache outdated (missing foundInRaid or itemRequirements.id) in '{API_FILE_PATH}' (size={size} bytes), forcing update...");
+                        AppLogger.Info("TarkovDataService.LoadFromLocalFile", $"TarkovAPI cache outdated (missing foundInRaid or itemRequirements.id) in '{API_FILE_PATH}' (size={size} bytes), forcing update...");
 
                         // Force a fresh update and return; caller will deserialize new data.
                         // This method is only called from the async UpdateItemListAPI path (never directly on the UI thread),
@@ -138,7 +137,7 @@ namespace TarkovPriceViewer.Services
                             Data = temp?.data;
                         }
                     }
-                    Debug.WriteLine("\n--> TarkovDev API Loaded from local File! \n--> " + GetLastUpdatedText() + "\n\n");
+                    AppLogger.Info("TarkovDataService.LoadFromLocalFile", $"TarkovDev API Loaded from local file. {GetLastUpdatedText()}");
                     IsLoaded = true;
                 }
             }
@@ -157,7 +156,7 @@ namespace TarkovPriceViewer.Services
                     // ignore size errors, we still log the path and exception
                 }
 
-                Debug.WriteLine($"\n--> Error trying to load Tarkov API from local file '{API_FILE_PATH}' (size={size} bytes): " + ex.Message);
+                AppLogger.Error("TarkovDataService.LoadFromLocalFile", $"Error trying to load Tarkov API from local file '{API_FILE_PATH}' (size={size} bytes)", ex);
             }
         }
 

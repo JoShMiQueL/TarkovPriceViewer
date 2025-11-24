@@ -240,7 +240,7 @@ namespace TarkovPriceViewer.UI
                         else
                         {
                             _currentItem = item;
-                            Debug.WriteLine("Market Link: " + item.link);
+                            AppLogger.Info("Overlay.ShowInfoAPI", "Market Link: " + item.link);
 
                             string mainCurrency = Program.rouble.ToString();
                             string BestSellTo_vendorName = "";
@@ -857,7 +857,9 @@ namespace TarkovPriceViewer.UI
                                 sb.Append(String.Format("\nItem Banned from Flea Market"));
 
                             iteminfo_ball.Rows.Clear();
-                            iteminfo_text.Text = sb.ToString().Trim();
+                            string overlayText = sb.ToString().Trim();
+                            iteminfo_text.Text = overlayText;
+                            AppLogger.Info("Overlay.ShowInfoAPI", overlayText);
 
                             // Highlight trader vs Flea percentage suffix, e.g. "(68% of Flea, min 40%)"
                             // Only color it green when the actual percentage is >= the configured minimum.

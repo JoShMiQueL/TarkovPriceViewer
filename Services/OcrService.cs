@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using OpenCvSharp;
 using Sdcb.PaddleInference;
 using Sdcb.PaddleOCR;
@@ -48,14 +47,14 @@ namespace TarkovPriceViewer.Services
                 }
                 catch (Exception e)
                 {
-                    Debug.WriteLine("Error creating PaddleOcrRecognizer GPU: " + e.Message);
+                    AppLogger.Error("OcrService.EnsureInitialized", "Error creating PaddleOcrRecognizer GPU", e);
                     try
                     {
                         _ocrRecognizer = new PaddleOcrRecognizer(_languageModel, PaddleDevice.Mkldnn());
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine("Error creating PaddleOcrRecognizer CPU: " + ex.Message);
+                        AppLogger.Error("OcrService.EnsureInitialized", "Error creating PaddleOcrRecognizer CPU", ex);
                         _ocrRecognizer = null;
                     }
                 }
@@ -93,14 +92,14 @@ namespace TarkovPriceViewer.Services
                 {
                     if (_languageModel == null)
                     {
-                        Debug.WriteLine("Download the paddle language model.");
+                        AppLogger.Info("OcrService.EnsureModel", "Download the paddle language model.");
                         _languageModel = model;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error downloading Paddle model: " + ex.Message);
+                AppLogger.Error("OcrService.EnsureModel", "Error downloading Paddle model", ex);
             }
         }
 
@@ -126,12 +125,12 @@ namespace TarkovPriceViewer.Services
                     {
                         text = result.Text.Replace("\n", " ").Split(currencySplitChars)[0].Trim();
                     }
-                    Debug.WriteLine(result.Score + " Paddle Text : " + result.Text);
+                    AppLogger.Info("OcrService.RecognizeText", $"Score={result.Score} Text={result.Text}");
                 }
             }
             catch (Exception e)
             {
-                Debug.WriteLine("Paddle error: " + e.Message);
+                AppLogger.Error("OcrService.RecognizeText", "Paddle error", e);
             }
 
             return text;

@@ -821,7 +821,7 @@ namespace TarkovPriceViewer.UI
 
 			try
 			{
-				Debug.WriteLine("Download the paddle language model.");
+				AppLogger.Info("MainForm.getPaddleModel", "Download the paddle language model.");
 				RecognizationModel model;
 				var lang = _settingsService.Settings.Language;
 				if (lang == "ko")
@@ -845,14 +845,14 @@ namespace TarkovPriceViewer.UI
 				{
 					if (languageModel == null)
 					{
-						Debug.WriteLine("language model setted.");
+						AppLogger.Info("MainForm.getPaddleModel", "Language model set.");
 						languageModel = model;
 					}
 				}
 			}
 			catch (Exception ex)
 			{
-				Debug.WriteLine("Error downloading Paddle model: " + ex.Message);
+				AppLogger.Error("MainForm.getPaddleModel", "Error downloading Paddle model", ex);
 			}
 		}
 
@@ -876,14 +876,14 @@ namespace TarkovPriceViewer.UI
 						}
 						catch (Exception e)
 						{
-							Debug.WriteLine("Error creating PaddleOcrRecognizer: " + e.Message);
+							AppLogger.Error("MainForm.EnsureRecognizer", "Error creating PaddleOcrRecognizer GPU", e);
 							try
 							{
 								ocrRecognizer = new PaddleOcrRecognizer(languageModel, PaddleDevice.Mkldnn());
 							}
 							catch (Exception ex)
 							{
-								Debug.WriteLine("Error creating CPU PaddleOcrRecognizer: " + ex.Message);
+								AppLogger.Error("MainForm.EnsureRecognizer", "Error creating CPU PaddleOcrRecognizer", ex);
 								ocrRecognizer = null;
 							}
 						}
@@ -900,12 +900,13 @@ namespace TarkovPriceViewer.UI
 				var lang = _settingsService.Settings.Language;
 				_ocrService.EnsureInitialized(lang);
 				var text = _ocrService.RecognizeText(textmat, Program.splitcur) ?? string.Empty;
+				AppLogger.Info("MainForm.getPaddleOCR", $"OCR primary='{text}'");
 				GettingItemInfo = false;
 				return text;
 			}
 			catch (Exception e)
 			{
-				Debug.WriteLine("Paddle error: " + e.Message);
+				AppLogger.Error("MainForm.getPaddleOCR", "Paddle error", e);
 				GettingItemInfo = false;
 				return string.Empty;
 			}
@@ -939,6 +940,7 @@ namespace TarkovPriceViewer.UI
 									item = _itemRecognitionService.MatchItemName(text, string.Empty, data);
 									if (item != null && !string.IsNullOrEmpty(item.name))
 									{
+										AppLogger.Info("MainForm.FindItemAPI", $"Matched item from primary OCR: '{text}' -> '{item.name}'");
 										break;
 									}
 								}
@@ -948,6 +950,7 @@ namespace TarkovPriceViewer.UI
 								if (!string.IsNullOrEmpty(text2)) //If tooltip text found
 								{
 									item = _itemRecognitionService.MatchItemName(text, text2, data);
+									AppLogger.Info("MainForm.FindItemAPI", $"Matched item from tooltip OCR: primary='{text}', tooltip='{text2}', result='{item?.name}'");
 									break;
 								}
 							}

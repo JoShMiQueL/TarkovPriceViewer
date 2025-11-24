@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using TarkovPriceViewer.Models;
 
@@ -67,7 +66,7 @@ namespace TarkovPriceViewer.Services
                 result = new TarkovAPI.Item { name = "Encrypted Message" };
             }
 
-            Debug.WriteLine(d + " text match : " + result.name);
+            AppLogger.Info("ItemRecognitionService.MatchItemName", $"distance={d}, result={result.name}");
             return result;
         }
 

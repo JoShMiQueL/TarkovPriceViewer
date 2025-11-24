@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 using TarkovPriceViewer.Models;
-using System.Diagnostics;
 
 namespace TarkovPriceViewer.Services
 {
@@ -35,7 +34,7 @@ namespace TarkovPriceViewer.Services
             {
                 var client = _httpClientFactory.CreateClient();
                 client.Timeout = TimeSpan.FromSeconds(10); // Increased timeout a bit
-                Debug.WriteLine(WikiUrl);
+                AppLogger.Info("BallisticsService.LoadBallisticsAsync", $"Requesting {WikiUrl}");
                 
                 string html = await client.GetStringAsync(WikiUrl);
                 
@@ -72,11 +71,11 @@ namespace TarkovPriceViewer.Services
                     }
                 }
                 IsLoaded = true;
-                Debug.WriteLine("Finished getting Ballistics!");
+                AppLogger.Info("BallisticsService.LoadBallisticsAsync", "Finished getting Ballistics!");
             }
             catch (Exception e)
             {
-                Debug.WriteLine("Error with Ballistics : " + e.Message);
+                AppLogger.Error("BallisticsService.LoadBallisticsAsync", "Error with Ballistics", e);
             }
         }
 
@@ -150,7 +149,7 @@ namespace TarkovPriceViewer.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("Error 14: " + ex.Message);
+                    AppLogger.Error("BallisticsService.ParseDamage", "Error 14", ex);
                 }
                 damage += " = " + mul;
             }
