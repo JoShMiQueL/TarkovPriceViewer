@@ -62,6 +62,9 @@ namespace TarkovPriceViewer.UI
 		[DllImport("user32.dll")]
 		private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
+		[DllImport("user32.dll")]
+		private static extern short GetKeyState(int nVirtKey);
+
 		[DllImport("User32.dll")]
 		private static extern bool GetLastInputInfo(ref LASTINPUTINFO Dummy);
 
@@ -118,6 +121,12 @@ namespace TarkovPriceViewer.UI
 		private const int MOUSE_X2 = 1005;
 		private const int XBUTTON1 = 0x0001;
 		private const int XBUTTON2 = 0x0002;
+		private const int VK_SHIFT = 0x10;
+		private const int VK_CONTROL = 0x11;
+		private const int VK_MENU = 0x12;
+		private const int VK_LBUTTON = 0x01;
+		private const int VK_RBUTTON = 0x02;
+		private const int VK_MBUTTON = 0x04;
 		private static bool isinfoclosed = true;
 		private static bool iscompareclosed = true;
 		private static LowLevelProc _proc_keyboard = null;
@@ -228,12 +237,12 @@ namespace TarkovPriceViewer.UI
 			buy_from_trader_box.Checked = s.BuyFromTrader;
 			needs_box.Checked = s.Needs;
 			barters_and_crafts_box.Checked = s.BartersAndCrafts;
-			ShowOverlay_Button.Text = GetKeybindText(s.ShowOverlayKey.ToString(CultureInfo.InvariantCulture));
-			HideOverlay_Button.Text = GetKeybindText(s.HideOverlayKey.ToString(CultureInfo.InvariantCulture));
-			CompareOverlay_Button.Text = GetKeybindText(s.CompareOverlayKey.ToString(CultureInfo.InvariantCulture));
-			IncreaseTrackerCountButton.Text = GetKeybindText(s.IncreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
-			DecreaseTrackerCountButton.Text = GetKeybindText(s.DecreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
-			ToggleFavorite_Button.Text = GetKeybindText(s.ToggleFavoriteItemKey.ToString(CultureInfo.InvariantCulture));
+			ShowOverlay_Button.Text = GetKeybindText(s.ShowOverlayKeyBind);
+			HideOverlay_Button.Text = GetKeybindText(s.HideOverlayKeyBind);
+			CompareOverlay_Button.Text = GetKeybindText(s.CompareOverlayKeyBind);
+			IncreaseTrackerCountButton.Text = GetKeybindText(s.IncreaseTrackerCountKeyBind);
+			DecreaseTrackerCountButton.Text = GetKeybindText(s.DecreaseTrackerCountKeyBind);
+			ToggleFavorite_Button.Text = GetKeybindText(s.ToggleFavoriteItemKeyBind);
 			TransParent_Bar.Value = s.OverlayTransparent;
 			TransParent_Text.Text = s.OverlayTransparent.ToString(CultureInfo.InvariantCulture) + "%";
 			TarkovTrackerCheckBox.Checked = s.UseTarkovTrackerApi;
@@ -348,7 +357,8 @@ namespace TarkovPriceViewer.UI
 							if ((Program.finishloadingTarkovTrackerAPI && Program.AppSettings.UseTarkovTrackerApi) || !Program.AppSettings.UseTarkovTrackerApi)
 							{
 								int vkCode = Marshal.ReadInt32(lParam);
-								HandleGlobalKeyOrMouse(vkCode);
+								string combo = BuildCurrentKeyBindString(vkCode, false);
+								HandleGlobalKeyOrMouse(vkCode, combo);
 							}
 							else
 							{
@@ -371,21 +381,106 @@ namespace TarkovPriceViewer.UI
 			return CallNextHookEx(hhook_keyboard, code, (int)wParam, lParam);
 		}
 
-		private void HandleGlobalKeyOrMouse(int code)
+		private string NormalizeBind(string bind)
+		{
+			if (string.IsNullOrWhiteSpace(bind))
+			{
+				return string.Empty;
+			}
+
+			var parts = bind.Split(new[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
+			var codes = new System.Collections.Generic.List<int>();
+			foreach (var p in parts)
+			{
+				if (int.TryParse(p, out var c))
+				{
+					codes.Add(c);
+				}
+			}
+			if (codes.Count == 0)
+			{
+				return string.Empty;
+			}
+			codes.Sort();
+			return string.Join("+", codes);
+		}
+
+		private bool IsKeybindMatch(string currentCombo, string settingBind)
+		{
+			var normalizedSetting = NormalizeBind(settingBind);
+			if (!string.IsNullOrEmpty(normalizedSetting))
+			{
+				var normalizedCurrent = NormalizeBind(currentCombo);
+				return !string.IsNullOrEmpty(normalizedCurrent) && normalizedCurrent == normalizedSetting;
+			}
+
+			return false;
+		}
+
+		private string BuildCurrentKeyBindString(int primaryCode, bool isMouse)
+		{
+			var codes = new System.Collections.Generic.List<int>();
+
+			if ((GetKeyState(VK_SHIFT) & 0x8000) != 0)
+			{
+				codes.Add((int)Keys.ShiftKey);
+			}
+			if ((GetKeyState(VK_CONTROL) & 0x8000) != 0)
+			{
+				codes.Add((int)Keys.ControlKey);
+			}
+			if ((GetKeyState(VK_MENU) & 0x8000) != 0)
+			{
+				codes.Add((int)Keys.Menu);
+			}
+
+			if (isMouse)
+			{
+				if ((GetKeyState(VK_LBUTTON) & 0x8000) != 0 || primaryCode == MOUSE_LEFT)
+				{
+					codes.Add(MOUSE_LEFT);
+				}
+				if ((GetKeyState(VK_RBUTTON) & 0x8000) != 0 || primaryCode == MOUSE_RIGHT)
+				{
+					codes.Add(MOUSE_RIGHT);
+				}
+				if ((GetKeyState(VK_MBUTTON) & 0x8000) != 0 || primaryCode == MOUSE_MIDDLE)
+				{
+					codes.Add(MOUSE_MIDDLE);
+				}
+			}
+			else
+			{
+				if (primaryCode != (int)Keys.ShiftKey && primaryCode != (int)Keys.ControlKey && primaryCode != (int)Keys.Menu)
+				{
+					codes.Add(primaryCode);
+				}
+			}
+
+			if (codes.Count == 0)
+			{
+				return string.Empty;
+			}
+
+			codes.Sort();
+			return string.Join("+", codes);
+		}
+
+		private void HandleGlobalKeyOrMouse(int code, string currentCombo)
 		{
 			try
 			{
-				int showKey = Program.AppSettings.ShowOverlayKey;
-				int compareKey = Program.AppSettings.CompareOverlayKey;
-				int hideKey = Program.AppSettings.HideOverlayKey;
-				int increaseTrackerKey = Program.AppSettings.IncreaseTrackerCountKey;
-				int decreaseTrackerKey = Program.AppSettings.DecreaseTrackerCountKey;
-				int toggleFavoriteKey = Program.AppSettings.ToggleFavoriteItemKey;
+				string showBind = Program.AppSettings.ShowOverlayKeyBind;
+				string compareBind = Program.AppSettings.CompareOverlayKeyBind;
+				string hideBind = Program.AppSettings.HideOverlayKeyBind;
+				string increaseBind = Program.AppSettings.IncreaseTrackerCountKeyBind;
+				string decreaseBind = Program.AppSettings.DecreaseTrackerCountKeyBind;
+				string toggleFavoriteBind = Program.AppSettings.ToggleFavoriteItemKeyBind;
 
-				if (code == showKey)
+				if (IsKeybindMatch(currentCombo, showBind))
 				{
 					KeyPressedTime = DateTime.Now;
-					Debug.WriteLine("\n\n----------------" + Program.AppSettings.ShowOverlayKey + " Key Pressed -----------------");
+					Debug.WriteLine("\n\n---------------- ShowOverlay Key Pressed -----------------");
 					if ((!timer.Enabled || !WaitingForTooltip) && (KeyPressedTime - presstime).TotalMilliseconds >= 200)
 					{
 						point = Control.MousePosition;
@@ -398,27 +493,26 @@ namespace TarkovPriceViewer.UI
 					}
 					presstime = KeyPressedTime;
 				}
-				else if (code == compareKey)
+				else if (IsKeybindMatch(currentCombo, compareBind))
 				{
 					point = Control.MousePosition;
 					LoadingItemCompare();
 				}
-				else if (code == increaseTrackerKey && increaseTrackerKey != 0)
+				else if (IsKeybindMatch(currentCombo, increaseBind))
 				{
 					overlay_info.IncrementCurrentItemCount();
 				}
-				else if (code == decreaseTrackerKey && decreaseTrackerKey != 0)
+				else if (IsKeybindMatch(currentCombo, decreaseBind))
 				{
 					overlay_info.DecrementCurrentItemCount();
 				}
-				else if (code == toggleFavoriteKey && toggleFavoriteKey != 0)
+				else if (IsKeybindMatch(currentCombo, toggleFavoriteBind))
 				{
 					overlay_info.ToggleFavoriteCurrentItem();
 				}
-				else if (code == hideKey
-					|| code == 9 //tab
-					|| code == 27 //esc
-					)
+				else if (IsKeybindMatch(currentCombo, hideBind)
+					|| code == 9
+					|| code == 27)
 				{
 					CloseItemInfo();
 					CloseItemCompare();
@@ -479,7 +573,8 @@ namespace TarkovPriceViewer.UI
 
 						if (mouseCode != 0)
 						{
-							HandleGlobalKeyOrMouse(mouseCode);
+							string combo = BuildCurrentKeyBindString(mouseCode, true);
+							HandleGlobalKeyOrMouse(mouseCode, combo);
 						}
 					}
 				}
@@ -493,14 +588,44 @@ namespace TarkovPriceViewer.UI
 
 		private string GetKeybindText(string value)
 		{
+			if (string.IsNullOrWhiteSpace(value))
+			{
+				return string.Empty;
+			}
+
+			if (value.Contains("+"))
+			{
+				var parts = value.Split(new[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
+				var labels = new System.Collections.Generic.List<string>();
+				foreach (var p in parts)
+				{
+					if (int.TryParse(p, out var codePart))
+					{
+						labels.Add(GetSingleCodeText(codePart));
+					}
+				}
+				return string.Join(" + ", labels);
+			}
+
 			int code;
 			if (!int.TryParse(value, out code))
 			{
 				return value;
 			}
 
+			return GetSingleCodeText(code);
+		}
+
+		private string GetSingleCodeText(int code)
+		{
 			switch (code)
 			{
+				case (int)Keys.ShiftKey:
+					return "Shift";
+				case (int)Keys.ControlKey:
+					return "Ctrl";
+				case (int)Keys.Menu:
+					return "Alt";
 				case MOUSE_LEFT:
 					return "Mouse Left";
 				case MOUSE_RIGHT:
@@ -938,17 +1063,17 @@ namespace TarkovPriceViewer.UI
 			{
 				if (keycode != null)
 				{
-					press_key_control.Text = keycode.ToString();
+					press_key_control.Text = GetKeybindText(((int)keycode).ToString(CultureInfo.InvariantCulture));
 				}
 				else
 				{
 					var s = _settingsService.Settings;
-					ShowOverlay_Button.Text = GetKeybindText(s.ShowOverlayKey.ToString(CultureInfo.InvariantCulture));
-					HideOverlay_Button.Text = GetKeybindText(s.HideOverlayKey.ToString(CultureInfo.InvariantCulture));
-					CompareOverlay_Button.Text = GetKeybindText(s.CompareOverlayKey.ToString(CultureInfo.InvariantCulture));
-					IncreaseTrackerCountButton.Text = GetKeybindText(s.IncreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
-					DecreaseTrackerCountButton.Text = GetKeybindText(s.DecreaseTrackerCountKey.ToString(CultureInfo.InvariantCulture));
-					ToggleFavorite_Button.Text = GetKeybindText(s.ToggleFavoriteItemKey.ToString(CultureInfo.InvariantCulture));
+					ShowOverlay_Button.Text = GetKeybindText(s.ShowOverlayKeyBind);
+					HideOverlay_Button.Text = GetKeybindText(s.HideOverlayKeyBind);
+					CompareOverlay_Button.Text = GetKeybindText(s.CompareOverlayKeyBind);
+					IncreaseTrackerCountButton.Text = GetKeybindText(s.IncreaseTrackerCountKeyBind);
+					DecreaseTrackerCountButton.Text = GetKeybindText(s.DecreaseTrackerCountKeyBind);
+					ToggleFavorite_Button.Text = GetKeybindText(s.ToggleFavoriteItemKeyBind);
 				}
 				press_key_control = null;
 			}

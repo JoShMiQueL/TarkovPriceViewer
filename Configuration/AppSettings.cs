@@ -11,11 +11,11 @@ namespace TarkovPriceViewer.Configuration
         public bool MinimizeToTrayOnStartup { get; set; } = false;
         public bool CloseOverlayWhenMouseMoved { get; set; } = true;
         public bool RandomItem { get; set; } = false;
-        public int ShowOverlayKey { get; set; } = (int)Keys.F9;
-        public int HideOverlayKey { get; set; } = (int)Keys.F10;
-        public int CompareOverlayKey { get; set; } = (int)Keys.F8;
-        public int IncreaseTrackerCountKey { get; set; } = (int)Keys.Up;
-        public int DecreaseTrackerCountKey { get; set; } = (int)Keys.Down;
+        public string ShowOverlayKeyBind { get; set; } = ((int)Keys.F9).ToString();
+        public string HideOverlayKeyBind { get; set; } = ((int)Keys.F10).ToString();
+        public string CompareOverlayKeyBind { get; set; } = ((int)Keys.F8).ToString();
+        public string IncreaseTrackerCountKeyBind { get; set; } = ((int)Keys.Up).ToString();
+        public string DecreaseTrackerCountKeyBind { get; set; } = ((int)Keys.Down).ToString();
         public int OverlayTransparent { get; set; } = 80;
         public bool ShowLastPrice { get; set; } = true;
         public bool ShowDayPrice { get; set; } = true;
@@ -32,7 +32,7 @@ namespace TarkovPriceViewer.Configuration
         public int ItemWorthThreshold { get; set; } = 7500;
         public int AmmoWorthThreshold { get; set; } = 800;
         public int FleaTraderProfitTolerancePercent { get; set; } = 85;
-        public int ToggleFavoriteItemKey { get; set; } = 118;
+        public string ToggleFavoriteItemKeyBind { get; set; } = ((int)Keys.F7).ToString();
         public List<string> FavoriteItems { get; set; } = new List<string>();
     }
 }
