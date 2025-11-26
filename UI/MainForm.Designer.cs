@@ -863,7 +863,7 @@ namespace TarkovPriceViewer.UI
 			label1.Name = "label1";
 			label1.Size = new System.Drawing.Size(150, 15);
 			label1.TabIndex = 0;
-			label1.Text = "Use TarkovTracker.io?";
+			label1.Text = "Use TarkovTracker.org?";
 			label1.MouseHover += label1_MouseHover;
 			// 
 			// languageBox

@@ -49,6 +49,7 @@ namespace TarkovPriceViewer.Services
 
         private const string LOCAL_TASKS_FILE = "tarkovtracker-tasks.json";
         private const string LOCAL_HIDEOUT_FILE = "tarkovtracker-hideout.json";
+        private const string TarkovTrackerBaseUrl = "https://tarkovtracker.org/api/v2";
 
         public TarkovTrackerAPI.Root TrackerData { get; private set; }
         public bool IsLoaded { get; private set; }
@@ -208,7 +209,7 @@ namespace TarkovPriceViewer.Services
                         var client = _httpClientFactory.CreateClient();
                         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
-                        var httpResponse = await client.GetAsync("https://tarkovtracker.io/api/v2/progress");
+                        var httpResponse = await client.GetAsync($"{TarkovTrackerBaseUrl}/progress");
                         if (httpResponse.IsSuccessStatusCode)
                         {
                             string responseContent = await httpResponse.Content.ReadAsStringAsync();
@@ -232,6 +233,10 @@ namespace TarkovPriceViewer.Services
                                 ApplyLocalObjectiveUpdate(obj);
                             }
                         }
+                        else
+                        {
+                            Debug.WriteLine($"[TarkovTracker] Failed to GET /progress: {(int)httpResponse.StatusCode} {httpResponse.ReasonPhrase}");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -242,6 +247,10 @@ namespace TarkovPriceViewer.Services
                 {
                     Debug.WriteLine("--> No need to update TarkovTracker API!");
                 }
+            }
+            else
+            {
+                Debug.WriteLine("[TarkovTracker] Skipping update: API usage disabled or API key not set.");
             }
         }
 
@@ -273,7 +282,7 @@ namespace TarkovPriceViewer.Services
                 var json = JsonConvert.SerializeObject(payload);
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var url = $"https://tarkovtracker.io/api/v2/progress/task/objective/{updatedObjective.ObjectiveId}";
+                var url = $"{TarkovTrackerBaseUrl}/progress/task/objective/{updatedObjective.ObjectiveId}";
                 Debug.WriteLine($"[TarkovTracker] Updating objective via {url} -> count={updatedObjective.CurrentCount}, state={state}");
 
                 // OpenAPI specifies POST for this endpoint

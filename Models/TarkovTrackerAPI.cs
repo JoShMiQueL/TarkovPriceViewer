@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace TarkovPriceViewer.Models
 {
@@ -6,6 +7,7 @@ namespace TarkovPriceViewer.Models
     {
         public class Data
         {
+            [JsonProperty("taskProgress")]
             public List<TasksProgress> tasksProgress { get; set; }
             public List<TaskObjectivesProgress> taskObjectivesProgress { get; set; }
             public List<HideoutModulesProgress> hideoutModulesProgress { get; set; }
@@ -14,6 +16,7 @@ namespace TarkovPriceViewer.Models
             public string userId { get; set; }
             public int? playerLevel { get; set; }
             public int? gameEdition { get; set; }
+            public string pmcFaction { get; set; }
         }
 
         public class HideoutModulesProgress
@@ -45,12 +48,15 @@ namespace TarkovPriceViewer.Models
             public string id { get; set; }
             public bool? complete { get; set; }
             public int? count { get; set; }
+            public bool? invalid { get; set; }
         }
 
         public class TasksProgress
         {
             public string id { get; set; }
             public bool? complete { get; set; }
+            public bool? failed { get; set; }
+            public bool? invalid { get; set; }
         }
     }
 }

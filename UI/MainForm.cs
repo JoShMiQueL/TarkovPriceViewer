@@ -1310,22 +1310,22 @@ namespace TarkovPriceViewer.UI
 
 		private void label1_MouseHover(object sender, EventArgs e)
 		{
-			TarkovTrackerAPI_tooltip.SetToolTip(label1, "Use TarkovTracker.io to show only your active tasks and hideout upgrades. And hide completed.");
+			TarkovTrackerAPI_tooltip.SetToolTip(label1, "Use TarkovTracker.org to show only your active tasks and hideout upgrades. And hide completed.");
 		}
 
 		private void TarkovTrackerCheckBox_MouseHover(object sender, EventArgs e)
 		{
-			TarkovTrackerAPI_tooltip.SetToolTip(TarkovTrackerCheckBox, "Use TarkovTracker.io to show only your active tasks and hideout upgrades. And hide completed.");
+			TarkovTrackerAPI_tooltip.SetToolTip(TarkovTrackerCheckBox, "Use TarkovTracker.org to show only your active tasks and hideout upgrades. And hide completed.");
 		}
 
 		private void label2_MouseHover(object sender, EventArgs e)
 		{
-			TarkovTrackerAPI_tooltip.SetToolTip(label2, "Go to \"https://tarkovtracker.io/settings\" to get your API key.");
+			TarkovTrackerAPI_tooltip.SetToolTip(label2, "Go to \"https://tarkovtracker.org/settings\" to get your API key.");
 		}
 
 		private void tarkovTrackerApiKey_textbox_MouseHover(object sender, EventArgs e)
 		{
-			TarkovTrackerAPI_tooltip.SetToolTip(tarkovTrackerApiKey_textbox, "Go to \"https://tarkovtracker.io/settings\" to get your API key.");
+			TarkovTrackerAPI_tooltip.SetToolTip(tarkovTrackerApiKey_textbox, "Go to \"https://tarkovtracker.org/settings\" to get your API key.");
 		}
 
 		private void TarkovTracker_button_Click(object sender, EventArgs e)

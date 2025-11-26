@@ -50,7 +50,7 @@ namespace TarkovPriceViewer
         public static bool finishloadingTarkovTrackerAPI = false;
         public static readonly String wiki = "https://escapefromtarkov.fandom.com/wiki/";
         public static readonly String tarkov_dev = "https://tarkov.dev/";
-        public static readonly String tarkovtracker = "https://tarkovtracker.io/";
+        public static readonly String tarkovtracker = "https://tarkovtracker.org/";
         public static readonly String tarkovmarket = "https://tarkov-market.com/item/";
         public static readonly String official = "https://www.escapefromtarkov.com/";
         public static readonly List<String> github = new List<string>() { "https://github.com/hwangshkr/TarkovPriceViewer", "https://github.com/Zotikus1001/TarkovPriceViewer" };

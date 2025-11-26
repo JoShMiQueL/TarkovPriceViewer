@@ -126,7 +126,7 @@ Since version 1.06 you can compare some options of items with the shortcut key (
 ### TarkovTracker & Hideout settings (v1.35)
 
 - To use tracker-aware features you need a **TarkovTracker API key**:
-  - Generate one on https://tarkovtracker.io/ and paste it in the **TarkovTracker API Key** field.
+  - Generate one on https://tarkovtracker.org/ and paste it in the **TarkovTracker API Key** field.
   - Enable the option to **Use TarkovTracker API** in the settings.
 - Once enabled:
   - The overlay will display **Used in Task** with `You have` / `Needed` counts per item.
@@ -171,7 +171,7 @@ Latest Visual C++ Redistributable (https://aka.ms/vs/17/release/vc_redist.x64.ex
 4. Tarkov Wiki (https://escapefromtarkov.fandom.com/wiki/Escape_from_Tarkov_Wiki)
 5. Escape from Tarkov (https://www.escapefromtarkov.com/)
 6. Tarkov.dev API (https://tarkov.dev/)
-7. TarkovTracker API (https://tarkovtracker.io)
+7. TarkovTracker API (https://tarkovtracker.org)
 
 # Funny description written by ChatGPT
 Hey fellow Tarkov players, listen up! If you're struggling to keep up with all the ammo types in the game, or if you're having a hard time finding out the market price of certain items before the flea market opens, then boy do I have the perfect tool for you!
