@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 
 namespace TarkovPriceViewer.Utils
 {
@@ -6,7 +7,26 @@ namespace TarkovPriceViewer.Utils
     {
         public static string GetVersion()
         {
-            var version = typeof(AppUtils).Assembly.GetName().Version;
+            var assembly = typeof(AppUtils).Assembly;
+            // First, try to read the informational version, which in SDK-style projects
+            // corresponds to the <Version> in the csproj (including suffixes such as -beta.1).
+            var infoVersion = assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion;
+            if (!string.IsNullOrWhiteSpace(infoVersion))
+            {
+                // Trim build metadata suffix (e.g. +commit-hash) if present
+                var plusIndex = infoVersion.IndexOf('+');
+                if (plusIndex >= 0)
+                {
+                    infoVersion = infoVersion.Substring(0, plusIndex);
+                }
+
+                return $"v{infoVersion}";
+            }
+
+            // Fallback: use classic AssemblyVersion if no informational version is defined
+            var version = assembly.GetName().Version;
             if (version == null) return "v1.0";
 
             // If patch is 0, use major.minor (e.g., v1.35)
