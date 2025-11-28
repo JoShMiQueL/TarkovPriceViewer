@@ -18,6 +18,7 @@ using System.Windows.Forms;
 using static TarkovPriceViewer.Models.TarkovAPI;
 using TarkovPriceViewer.Models;
 using TarkovPriceViewer.Services;
+using TarkovPriceViewer.Utils;
 
 namespace TarkovPriceViewer.UI
 {
@@ -226,7 +227,7 @@ namespace TarkovPriceViewer.UI
 
 			MinimizeBox = false;
 			MaximizeBox = false;
-			Text = $"TarkovPriceViewer {s.Version}";
+			Text = $"TarkovPriceViewer {AppUtils.GetVersion()}";
 			MinimizetoTrayWhenStartup.Checked = s.MinimizeToTrayOnStartup;
 			CloseOverlayWhenMouseMoved.Checked = s.CloseOverlayWhenMouseMoved;
 			RandomItem.Checked = s.RandomItem;
@@ -1173,10 +1174,16 @@ namespace TarkovPriceViewer.UI
 
 				if (!string.IsNullOrEmpty(highgithub))
 				{
-					string vs = "v" + highv;
-					if (!_settingsService.Settings.Version.Equals(vs, StringComparison.OrdinalIgnoreCase))
+					// Build remote/latest tag from numeric value
+					string latestTag = "v" + highv.ToString(CultureInfo.InvariantCulture);
+					// Current app tag (with leading 'v')
+					string currentTag = AppUtils.GetVersion();
+					// Compare numeric parts (without leading 'v') to decide if there is a newer version
+					var currentVersionNoPrefix = AppUtils.GetVersionWithoutPrefix();
+					if (!float.TryParse(currentVersionNoPrefix, NumberStyles.Float, CultureInfo.InvariantCulture, out var currentNumeric)
+						|| highv > currentNumeric)
 					{
-						MessageBox.Show($"New version ({vs}) found.\nCurrent Version is {_settingsService.Settings.Version}");
+						MessageBox.Show($"New version ({latestTag}) found.\nCurrent Version is {currentTag}");
 						Process.Start(highgithub);
 					}
 					else

@@ -2,12 +2,13 @@ using System.Text.Json;
 using System.IO;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using TarkovPriceViewer.Utils;
 
 namespace TarkovPriceViewer.Configuration
 {
     public class AppSettings
     {
-        public string Version { get; set; } = "v1.35";
+        public string Version { get; set; } = AppUtils.GetVersion();
         public bool MinimizeToTrayOnStartup { get; set; } = false;
         public bool CloseOverlayWhenMouseMoved { get; set; } = true;
         public bool RandomItem { get; set; } = false;
