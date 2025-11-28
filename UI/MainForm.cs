@@ -353,24 +353,33 @@ namespace TarkovPriceViewer.UI
 				{
 					if (press_key_control == null)
 					{
-						if (Program.finishloadingballistics)
+						int vkCode = Marshal.ReadInt32(lParam);
+						string combo = BuildCurrentKeyBindString(vkCode, false);
+
+						// Always allow Esc/Tab to close overlays, even if the APIs have not finished loading
+						if (vkCode == 9 || vkCode == 27)
 						{
-							if ((Program.finishloadingTarkovTrackerAPI && Program.AppSettings.UseTarkovTrackerApi) || !Program.AppSettings.UseTarkovTrackerApi)
+							HandleGlobalKeyOrMouse(vkCode, combo);
+						}
+						else if (HasAnyGlobalKeybindMatch(combo))
+						{
+							if (Program.finishloadingballistics)
 							{
-								int vkCode = Marshal.ReadInt32(lParam);
-								string combo = BuildCurrentKeyBindString(vkCode, false);
-								HandleGlobalKeyOrMouse(vkCode, combo);
+								if ((Program.finishloadingTarkovTrackerAPI && Program.AppSettings.UseTarkovTrackerApi) || !Program.AppSettings.UseTarkovTrackerApi)
+								{
+									HandleGlobalKeyOrMouse(vkCode, combo);
+								}
+								else
+								{
+									point = Control.MousePosition;
+									overlay_info.ShowWaitAPI(point);
+								}
 							}
 							else
 							{
 								point = Control.MousePosition;
-								overlay_info.ShowWaitAPI(point);
+								overlay_info.ShowWaitBallistics(point);
 							}
-						}
-						else
-						{
-							point = Control.MousePosition;
-							overlay_info.ShowWaitBallistics(point);
 						}
 					}
 				}
@@ -414,6 +423,25 @@ namespace TarkovPriceViewer.UI
 				var normalizedCurrent = NormalizeBind(currentCombo);
 				return !string.IsNullOrEmpty(normalizedCurrent) && normalizedCurrent == normalizedSetting;
 			}
+
+			return false;
+		}
+
+		private bool HasAnyGlobalKeybindMatch(string currentCombo)
+		{
+			string showBind = Program.AppSettings.ShowOverlayKeyBind;
+			string compareBind = Program.AppSettings.CompareOverlayKeyBind;
+			string hideBind = Program.AppSettings.HideOverlayKeyBind;
+			string increaseBind = Program.AppSettings.IncreaseTrackerCountKeyBind;
+			string decreaseBind = Program.AppSettings.DecreaseTrackerCountKeyBind;
+			string toggleFavoriteBind = Program.AppSettings.ToggleFavoriteItemKeyBind;
+
+			if (IsKeybindMatch(currentCombo, showBind)) return true;
+			if (IsKeybindMatch(currentCombo, compareBind)) return true;
+			if (IsKeybindMatch(currentCombo, hideBind)) return true;
+			if (IsKeybindMatch(currentCombo, increaseBind)) return true;
+			if (IsKeybindMatch(currentCombo, decreaseBind)) return true;
+			if (IsKeybindMatch(currentCombo, toggleFavoriteBind)) return true;
 
 			return false;
 		}
