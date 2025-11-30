@@ -40,8 +40,9 @@
 - Keep lines under 120 characters when possible
 
 ### Architecture
-- Services in `/Services/` folder with corresponding interfaces
-- Models in `/Models/` folder for data structures  
-- UI components in `/UI/` folder
-- Configuration in `/Configuration/` folder
-- Utility functions in `/Utils/` folder
+- **Runtime**: .NET `net10.0-windows` (WPF)
+- **Services**: `/Services/` folder with corresponding interfaces
+- **Models**: `/Models/` folder for data structures  
+- **UI (WPF)**: `/UI/` folder for WPF windows, views and controls (`MainWindow`, `OverlayWindow`, etc.)
+- **Configuration**: `/Configuration/` folder for settings, options and configuration bindings
+- **Utils**: `/Utils/` folder for shared utilities
