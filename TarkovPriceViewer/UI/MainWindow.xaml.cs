@@ -8,6 +8,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using TarkovPriceViewer.Services;
+using TarkovPriceViewer.Utils;
 
 namespace TarkovPriceViewer
 {
@@ -16,9 +18,17 @@ namespace TarkovPriceViewer
     /// </summary>
     public partial class MainWindow : Window
     {
+        private readonly ISettingsService _settingsService;
+
         public MainWindow()
         {
             InitializeComponent();
+
+            _settingsService = new SettingsService();
+            _settingsService.Load();
+
+            var version = VersionHelper.GetDisplayVersion();
+            Title = $"Tarkov Price Viewer v{version}";
         }
     }
 }
