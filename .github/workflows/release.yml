@@ -1,0 +1,175 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel (stable, alpha, beta, rc)'
+        required: true
+        default: 'stable'
+        type: choice
+        options: [stable, alpha, beta, rc]
+
+permissions:
+  contents: write
+
+jobs:
+  versionize:
+    name: Compute stable version with versionize
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      tag: ${{ steps.get_version.outputs.tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup .NET for versionize
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install versionize
+        run: |
+          dotnet tool install --global versionize
+        env:
+          DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+
+      - name: Add dotnet tools to PATH
+        run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+      - name: Configure git user for versionize
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run versionize
+        run: |
+          set -e
+          echo "[versionize] Running versionize to compute next base version and update changelog/project files"
+          versionize --exit-insignificant-commits
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine final version and tag
+        id: get_version
+        shell: bash
+        run: |
+          set -e
+
+          channel="${{ inputs.channel }}"
+          echo "[versionize] Selected channel: $channel"
+
+          # Latest base tag created by versionize, e.g. v1.2.3 or v1.2.3-alpha.1
+          base_tag=$(git describe --tags --abbrev=0)
+          base_ver="${base_tag#v}"
+
+          # Core semantic version without any pre-release suffix, e.g.
+          # 1.2.3-alpha.1 -> 1.2.3
+          base_core="${base_ver%%-*}"
+
+          echo "[versionize] Base tag from versionize: $base_tag"
+          echo "[versionize] Base version: $base_ver"
+
+          if [ "$channel" = "stable" ]; then
+            final_tag="$base_tag"
+            final_ver="$base_ver"
+          else
+            # Build pattern for existing pre-release tags, e.g. v1.2.3-alpha.
+            pattern="v${base_core}-${channel}."
+            echo "[versionize] Searching existing tags with pattern: $pattern*"
+
+            last_tag=$(git tag -l "${pattern}*" | sort -V | tail -n1 || echo "")
+
+            if [ -z "$last_tag" ]; then
+              n=1
+            else
+              # Extract numeric suffix after last dot
+              last_suffix="${last_tag##*.}"
+              if [[ "$last_suffix" =~ ^[0-9]+$ ]]; then
+                n=$((last_suffix + 1))
+              else
+                echo "[versionize] Warning: could not parse numeric suffix from $last_tag, starting at 1"
+                n=1
+              fi
+            fi
+
+            final_ver="${base_core}-${channel}.${n}"
+            final_tag="v${final_ver}"
+
+            echo "[versionize] Creating pre-release tag: $final_tag"
+            git tag "$final_tag"
+            git push origin "$final_tag"
+          fi
+
+          echo "[versionize] Final tag: $final_tag"
+          echo "[versionize] Final version: $final_ver"
+
+          echo "version=$final_ver" >> "$GITHUB_OUTPUT"
+          echo "tag=$final_tag" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (stable)
+    runs-on: windows-latest
+    needs: versionize
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish (Release, single file)
+        run: |
+          Write-Output "[Build] Publishing application in Release configuration (stable)"
+          dotnet publish TarkovPriceViewer/TarkovPriceViewer.csproj -c Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarkov-price-viewer-stable
+          path: TarkovPriceViewer/publish/TarkovPriceViewer.exe
+
+  publish-release:
+    name: Publish GitHub Release (stable)
+    runs-on: ubuntu-latest
+    needs:
+      - versionize
+      - build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tarkov-price-viewer-stable
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.versionize.outputs.tag }}
+          name: Tarkov Price Viewer ${{ needs.versionize.outputs.version }}
+          draft: false
+          prerelease: ${{ contains(needs.versionize.outputs.version, '-') }}
+          generate_release_notes: true
+          files: |
+            artifacts/TarkovPriceViewer.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

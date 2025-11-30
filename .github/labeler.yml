@@ -1,0 +1,19 @@
+# Auto-label pull requests based on their title (Conventional Commit style)
+
+"type:feature":
+  - title: "feat:"
+
+"type:fix":
+  - title: "fix:"
+
+"type:chore":
+  - title: "chore:"
+
+"type:docs":
+  - title: "docs:"
+
+"type:test":
+  - title: "test:"
+
+"type:refactor":
+  - title: "refactor:"

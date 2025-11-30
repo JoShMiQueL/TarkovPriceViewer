@@ -1,0 +1,23 @@
+changelog:
+  categories:
+    - title: "✨ Features"
+      labels:
+        - "type:feature"
+
+    - title: "🐛 Bug fixes"
+      labels:
+        - "type:fix"
+
+    - title: "🧹 Chores"
+      labels:
+        - "type:chore"
+
+    - title: "📦 Other changes"
+      labels:
+        - "type:refactor"
+        - "type:docs"
+        - "type:test"
+
+  exclude:
+    labels:
+      - "skip-changelog"

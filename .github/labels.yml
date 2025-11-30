@@ -1,0 +1,58 @@
+- name: skip-changelog
+  color: E4E669
+  description: Exclude this PR from release notes
+
+# Status labels
+- name: status:blocked
+  color: B60205
+  description: This issue or PR is currently blocked and cannot progress until something external is resolved
+
+- name: status:in-progress
+  color: FBCA04
+  description: Someone is actively working on this issue or PR
+
+- name: status:ready
+  color: 0E8A16
+  description: Ready to be picked up, reviewed, or merged
+
+- name: status:never-stale
+  color: 0366D6
+  description: Opt-out from stale automation; this should never be auto-closed as inactive
+
+# Priority labels
+- name: priority:low
+  color: C2E0C6
+  description: Nice to have; can be addressed when time permits
+
+- name: priority:medium
+  color: FBCA04
+  description: Default priority; should be worked on in the normal flow
+
+- name: priority:high
+  color: B60205
+  description: High urgency; should be prioritised ahead of normal work
+
+# Type labels (for visual grouping)
+- name: type:feature
+  color: 1D76DB
+  description: Feature or enhancement
+
+- name: type:fix
+  color: D73A4A
+  description: Bug fix
+
+- name: type:chore
+  color: 6A737D
+  description: Maintenance or chore work
+
+- name: type:refactor
+  color: C5DEF5
+  description: Refactor without behavior change
+
+- name: type:docs
+  color: 0075CA
+  description: Documentation changes
+
+- name: type:test
+  color: FBCA04
+  description: Testing and QA
