@@ -8,6 +8,7 @@ using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using TarkovPriceViewer.Models;
 using TarkovPriceViewer.Services;
+using TarkovPriceViewer.Utils;
 
 namespace TarkovPriceViewer.UI
 {
@@ -124,25 +125,12 @@ namespace TarkovPriceViewer.UI
 
             ResultItemNameText.Text = item.name;
 
-            // Imagen del objeto desde TarkovDev (iconLink)
-            if (!string.IsNullOrWhiteSpace(item.iconLink))
+            // Item image from TarkovDev (iconLink) via shared cache helper
+            var iconBitmap = TarkovDevIconCache.GetIcon(item);
+            if (iconBitmap != null)
             {
-                try
-                {
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.UriSource = new Uri(item.iconLink, UriKind.Absolute);
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.EndInit();
-
-                    ItemImage.Source = bitmap;
-                    ItemImage.Visibility = Visibility.Visible;
-                }
-                catch
-                {
-                    ItemImage.Source = null;
-                    ItemImage.Visibility = Visibility.Collapsed;
-                }
+                ItemImage.Source = iconBitmap;
+                ItemImage.Visibility = Visibility.Visible;
             }
             else
             {
