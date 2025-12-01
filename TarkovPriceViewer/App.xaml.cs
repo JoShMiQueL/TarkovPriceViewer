@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TarkovPriceViewer.Services;
+using TarkovPriceViewer.UI;
 
 namespace TarkovPriceViewer
 {
@@ -28,6 +29,7 @@ namespace TarkovPriceViewer
                     services.AddSingleton<IOcrService, OcrService>();
 
                     services.AddSingleton<MainWindow>();
+                    services.AddSingleton<OverlayWindow>();
                 });
         }
 
