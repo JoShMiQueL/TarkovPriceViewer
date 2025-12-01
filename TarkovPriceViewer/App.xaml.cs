@@ -1,6 +1,7 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
+﻿using System.Windows;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using TarkovPriceViewer.Services;
 
 namespace TarkovPriceViewer
 {
@@ -9,6 +10,46 @@ namespace TarkovPriceViewer
     /// </summary>
     public partial class App : Application
     {
-    }
+        private static IHost _host;
 
+        public static IHost Host => _host ??= CreateHostBuilder().Build();
+
+        private static IHostBuilder CreateHostBuilder()
+        {
+            return Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .ConfigureServices(services =>
+                {
+                    services.AddHttpClient();
+
+                    services.AddSingleton<ISettingsService, SettingsService>();
+                    services.AddSingleton<ITarkovDataService, TarkovDataService>();
+                    services.AddSingleton<ITarkovTrackerService, TarkovTrackerService>();
+                    services.AddSingleton<IItemRecognitionService, ItemRecognitionService>();
+                    services.AddSingleton<IOcrService, OcrService>();
+
+                    services.AddSingleton<MainWindow>();
+                });
+        }
+
+        protected override async void OnStartup(StartupEventArgs e)
+        {
+            await Host.StartAsync();
+
+            var mainWindow = Host.Services.GetRequiredService<MainWindow>();
+            mainWindow.Show();
+
+            base.OnStartup(e);
+        }
+
+        protected override async void OnExit(ExitEventArgs e)
+        {
+            if (_host != null)
+            {
+                await _host.StopAsync();
+                _host.Dispose();
+            }
+
+            base.OnExit(e);
+        }
+    }
 }

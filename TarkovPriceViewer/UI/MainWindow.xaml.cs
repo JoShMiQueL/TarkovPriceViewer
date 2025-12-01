@@ -20,11 +20,11 @@ namespace TarkovPriceViewer
     {
         private readonly ISettingsService _settingsService;
 
-        public MainWindow()
+        public MainWindow(ISettingsService settingsService)
         {
             InitializeComponent();
 
-            _settingsService = new SettingsService();
+            _settingsService = settingsService;
             _settingsService.Load();
 
             var version = VersionHelper.GetDisplayVersion();
