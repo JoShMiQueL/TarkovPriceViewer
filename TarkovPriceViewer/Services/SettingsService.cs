@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using TarkovPriceViewer.Configuration;
@@ -41,7 +40,7 @@ namespace TarkovPriceViewer.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error loading settings: {ex}");
+                AppLogger.Error("SettingsService.Load", "Error loading settings", ex);
                 Settings = new AppSettings();
             }
         }
@@ -60,7 +59,7 @@ namespace TarkovPriceViewer.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error saving settings: {ex}");
+                AppLogger.Error("SettingsService.Save", "Error saving settings", ex);
             }
         }
     }

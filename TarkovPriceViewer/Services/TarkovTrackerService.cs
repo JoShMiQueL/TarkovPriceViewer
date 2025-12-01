@@ -120,7 +120,7 @@ namespace TarkovPriceViewer.Services
             }
             catch (Exception ex)
             {
-                AppLogger.Error("TarkovTrackerService", "Error while applying local objective update", ex);
+                AppLogger.Error("TarkovTrackerService.ApplyLocalObjectiveUpdate", "Error while applying local objective update", ex);
             }
         }
 
@@ -140,7 +140,7 @@ namespace TarkovPriceViewer.Services
                 }
                 catch (Exception ex)
                 {
-                    AppLogger.Error("TarkovTrackerService", "Error in FlushLoopAsync", ex);
+                    AppLogger.Error("TarkovTrackerService.FlushLoopAsync", "Error in FlushLoopAsync", ex);
                 }
             }
         }
@@ -174,7 +174,7 @@ namespace TarkovPriceViewer.Services
                 }
                 catch (Exception ex)
                 {
-                    AppLogger.Error("TarkovTrackerService", "Error while flushing objective", ex);
+                    AppLogger.Error("TarkovTrackerService.FlushPendingObjectivesAsync", "Error while flushing objective", ex);
                     lock (_lockObject)
                     {
                         _pendingTaskObjectives[objective.ObjectiveId] = objective;
@@ -197,7 +197,7 @@ namespace TarkovPriceViewer.Services
                 {
                     try
                     {
-                        AppLogger.Info("TarkovTrackerService", "Updating TarkovTracker API...");
+                        AppLogger.Info("TarkovTrackerService.UpdateTarkovTrackerAPI", "Updating TarkovTracker API...");
 
                         HttpClient client = _httpClientFactory.CreateClient();
                         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
@@ -214,7 +214,7 @@ namespace TarkovPriceViewer.Services
                                 TrackerData = JsonConvert.DeserializeObject<TarkovTrackerAPI.Root>(responseContent);
                                 LastUpdated = DateTime.Now;
                                 IsLoaded = true;
-                                AppLogger.Info("TarkovTrackerService", "TarkovTracker API Updated");
+                                AppLogger.Info("TarkovTrackerService.UpdateTarkovTrackerAPI", "TarkovTracker API Updated");
 
                                 pendingSnapshot = _pendingTaskObjectives.Values.ToList();
                             }
@@ -226,22 +226,22 @@ namespace TarkovPriceViewer.Services
                         }
                         else
                         {
-                            AppLogger.Warn("TarkovTrackerService", $"Failed to GET /progress: {(int)httpResponse.StatusCode} {httpResponse.ReasonPhrase}");
+                            AppLogger.Warn("TarkovTrackerService.UpdateTarkovTrackerAPI", $"Failed to GET /progress: {(int)httpResponse.StatusCode} {httpResponse.ReasonPhrase}");
                         }
                     }
                     catch (Exception ex)
                     {
-                        AppLogger.Error("TarkovTrackerService", "Error trying to update TarkovTracker API", ex);
+                        AppLogger.Error("TarkovTrackerService.UpdateTarkovTrackerAPI", "Error trying to update TarkovTracker API", ex);
                     }
                 }
                 else
                 {
-                    AppLogger.Info("TarkovTrackerService", "No need to update TarkovTracker API");
+                    AppLogger.Info("TarkovTrackerService.UpdateTarkovTrackerAPI", "No need to update TarkovTracker API");
                 }
             }
             else
             {
-                AppLogger.Info("TarkovTrackerService", "Skipping update: API usage disabled or API key not set.");
+                AppLogger.Info("TarkovTrackerService.UpdateTarkovTrackerAPI", "Skipping update: API usage disabled or API key not set.");
             }
         }
 
@@ -257,7 +257,7 @@ namespace TarkovPriceViewer.Services
 
             if (DateTime.UtcNow - _lastTooManyRequests < TooManyRequestsCooldown)
             {
-                AppLogger.Warn("TarkovTrackerService", "Skipping objective update due to recent 429 (cooldown in effect)");
+                AppLogger.Warn("TarkovTrackerService.UpdateObjectiveCountAsync", "Skipping objective update due to recent 429 (cooldown in effect)");
                 return false;
             }
 
@@ -272,12 +272,12 @@ namespace TarkovPriceViewer.Services
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 string url = $"{TarkovTrackerBaseUrl}/progress/task/objective/{updatedObjective.ObjectiveId}";
-                AppLogger.Info("TarkovTrackerService", $"Updating objective via {url} -> count={updatedObjective.CurrentCount}, state={state}");
+                AppLogger.Info("TarkovTrackerService.UpdateObjectiveCountAsync", $"Updating objective via {url} -> count={updatedObjective.CurrentCount}, state={state}");
 
                 using HttpResponseMessage response = await client.PostAsync(url, content, cancellationToken).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
-                    AppLogger.Warn("TarkovTrackerService", $"Failed to update objective {updatedObjective.ObjectiveId}: {(int)response.StatusCode} {response.ReasonPhrase}");
+                    AppLogger.Warn("TarkovTrackerService.UpdateObjectiveCountAsync", $"Failed to update objective {updatedObjective.ObjectiveId}: {(int)response.StatusCode} {response.ReasonPhrase}");
 
                     if ((int)response.StatusCode == 429)
                     {
@@ -291,7 +291,7 @@ namespace TarkovPriceViewer.Services
             }
             catch (Exception ex)
             {
-                AppLogger.Error("TarkovTrackerService", "Error while updating objective", ex);
+                AppLogger.Error("TarkovTrackerService.UpdateObjectiveCountAsync", "Error while updating objective", ex);
                 return false;
             }
         }
@@ -420,7 +420,7 @@ namespace TarkovPriceViewer.Services
                 CurrentCount = newCount
             };
 
-            AppLogger.Info("TarkovTrackerService", $"Change objective {updated.ObjectiveId} for item {updated.ItemId}: {objective.CurrentCount} -> {updated.CurrentCount} (delta={delta})");
+            AppLogger.Info("TarkovTrackerService.TryChangeCurrentObjectiveForCurrentItem", $"Change objective {updated.ObjectiveId} for item {updated.ItemId}: {objective.CurrentCount} -> {updated.CurrentCount} (delta={delta})");
             return TrackerUpdateResult.Ok(updated);
         }
 
@@ -607,7 +607,7 @@ namespace TarkovPriceViewer.Services
                 CurrentCount = newCount
             };
 
-            AppLogger.Info("TarkovTrackerService", $"Local hideout change {updated.ObjectiveId} for item {updated.ItemId}: {requirement.CurrentCount} -> {updated.CurrentCount} (delta={delta})");
+            AppLogger.Info("TarkovTrackerService.ApplyLocalHideoutChangeForCurrentItem", $"Local hideout change {updated.ObjectiveId} for item {updated.ItemId}: {requirement.CurrentCount} -> {updated.CurrentCount} (delta={delta})");
 
             SaveLocalHideoutState();
             return TrackerUpdateResult.Ok(updated);
@@ -711,7 +711,7 @@ namespace TarkovPriceViewer.Services
             }
             catch (Exception ex)
             {
-                AppLogger.Error("TarkovTrackerService", "Error while saving local tasks state", ex);
+                AppLogger.Error("TarkovTrackerService.SaveLocalTasksState", "Error while saving local tasks state", ex);
             }
         }
 
@@ -798,7 +798,7 @@ namespace TarkovPriceViewer.Services
             }
             catch (Exception ex)
             {
-                AppLogger.Error("TarkovTrackerService", "Error while saving local hideout state", ex);
+                AppLogger.Error("TarkovTrackerService.SaveLocalHideoutState", "Error while saving local hideout state", ex);
             }
         }
 
@@ -847,7 +847,7 @@ namespace TarkovPriceViewer.Services
             }
             catch (Exception ex)
             {
-                AppLogger.Error("TarkovTrackerService", "Error while loading local tasks state", ex);
+                AppLogger.Error("TarkovTrackerService.LoadLocalTasksState", "Error while loading local tasks state", ex);
             }
         }
 
@@ -895,7 +895,7 @@ namespace TarkovPriceViewer.Services
             }
             catch (Exception ex)
             {
-                AppLogger.Error("TarkovTrackerService", "Error while loading local hideout state", ex);
+                AppLogger.Error("TarkovTrackerService.LoadLocalHideoutState", "Error while loading local hideout state", ex);
             }
         }
 

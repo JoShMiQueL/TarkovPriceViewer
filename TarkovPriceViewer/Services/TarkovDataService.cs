@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -54,7 +53,7 @@ namespace TarkovPriceViewer.Services
                 }
                 else
                 {
-                    Debug.WriteLine($"[TarkovDataService] No need to update TarkovDev API. {GetLastUpdatedText()}");
+                    AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", $"No need to update TarkovDev API. {GetLastUpdatedText()}");
                 }
 
                 return;
@@ -62,7 +61,7 @@ namespace TarkovPriceViewer.Services
 
             try
             {
-                Debug.WriteLine("[TarkovDataService] Updating TarkovDev API...");
+                AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", "Updating TarkovDev API...");
 
                 var queryDictionary = new Dictionary<string, string>
                 {
@@ -94,11 +93,11 @@ namespace TarkovPriceViewer.Services
                 IsLoaded = true;
                 File.WriteAllText(TarkovDevItemsCacheFilePath, responseContent);
 
-                Debug.WriteLine("[TarkovDataService] TarkovDev API updated.");
+                AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", "TarkovDev API updated.");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[TarkovDataService] Error updating TarkovDev API: {ex}");
+                AppLogger.Error("TarkovDataService.UpdateItemListAPIAsync", "Error updating TarkovDev API", ex);
             }
         }
 
@@ -124,7 +123,7 @@ namespace TarkovPriceViewer.Services
                     {
                     }
 
-                    Debug.WriteLine($"[TarkovDataService] TarkovDevAPI cache outdated in '{TarkovDevItemsCacheFilePath}' (size={size} bytes), forcing update...");
+                    AppLogger.Info("TarkovDataService.LoadFromLocalFile", $"TarkovDevAPI cache outdated in '{TarkovDevItemsCacheFilePath}' (size={size} bytes), forcing update...");
 
                     UpdateItemListAPIAsync(force: true).GetAwaiter().GetResult();
                     return;
@@ -141,7 +140,7 @@ namespace TarkovPriceViewer.Services
                 }
 
                 IsLoaded = true;
-                Debug.WriteLine($"[TarkovDataService] TarkovDev API loaded from local file. {GetLastUpdatedText()}");
+                AppLogger.Info("TarkovDataService.LoadFromLocalFile", $"TarkovDev API loaded from local file. {GetLastUpdatedText()}");
             }
             catch (Exception ex)
             {
@@ -157,7 +156,7 @@ namespace TarkovPriceViewer.Services
                 {
                 }
 
-                Debug.WriteLine($"[TarkovDataService] Error loading Tarkov API from local file '{TarkovDevItemsCacheFilePath}' (size={size} bytes): {ex}");
+                AppLogger.Error("TarkovDataService.LoadFromLocalFile", $"Error loading Tarkov API from local file '{TarkovDevItemsCacheFilePath}' (size={size} bytes)", ex);
             }
         }
 
