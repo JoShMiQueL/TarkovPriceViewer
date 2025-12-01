@@ -71,12 +71,17 @@ namespace TarkovPriceViewer.UI
             var rnd = new Random();
             int fakeOcrProcessingMs = rnd.Next(fakeOcrRangeMs[0], fakeOcrRangeMs[1] + 1);
 
+            // Estado inicial: mostrar panel de scanning, ocultar resto
+            ScanningPanel.Visibility = Visibility.Visible;
+            ErrorPanel.Visibility = Visibility.Collapsed;
+            ResultPanel.Visibility = Visibility.Collapsed;
+
             Stopwatch sw = Stopwatch.StartNew();
             while (sw.ElapsedMilliseconds < fakeOcrProcessingMs)
             {
                 int dotCount = pattern[step % pattern.Length];
                 string dots = new string('.', dotCount);
-                OverlayText.Text = baseText + dots;
+                ScanningTextBlock.Text = baseText + dots;
                 step++;
 
                 await Task.Delay(frameDelayMs).ConfigureAwait(true);
@@ -85,7 +90,10 @@ namespace TarkovPriceViewer.UI
             var data = _tarkovDataService.Data;
             if (data == null || data.items == null)
             {
-                OverlayText.Text = $"{baseText}...\r\n(Items data not loaded yet)";
+                ScanningPanel.Visibility = Visibility.Collapsed;
+                ErrorPanel.Visibility = Visibility.Visible;
+                ResultPanel.Visibility = Visibility.Collapsed;
+                ErrorText.Text = $"{baseText}...\r\n(Items data not loaded yet)";
                 return;
             }
 
@@ -101,31 +109,50 @@ namespace TarkovPriceViewer.UI
 
             if (item == null)
             {
-                OverlayText.Text = $"Scanning {itemName}...\r\nItem not found in TarkovDev data.";
+                ScanningPanel.Visibility = Visibility.Collapsed;
+                ErrorPanel.Visibility = Visibility.Visible;
+                ResultPanel.Visibility = Visibility.Collapsed;
+                ErrorText.Text = $"Scanning {itemName}...\r\nItem not found in TarkovDev data.";
                 return;
             }
 
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine(item.name);
+            // Mostrar resultado
+            ScanningPanel.Visibility = Visibility.Collapsed;
+            ErrorPanel.Visibility = Visibility.Collapsed;
+            ResultPanel.Visibility = Visibility.Visible;
+
+            ResultItemNameText.Text = item.name;
 
             if (item.lastLowPrice != null)
             {
-                sb.AppendLine($"Last price: {item.lastLowPrice.Value:N0}₽");
+                ResultLastPriceText.Text = $"Last price: {item.lastLowPrice.Value:N0}₽";
+            }
+            else
+            {
+                ResultLastPriceText.Text = string.Empty;
             }
 
             if (item.avg24hPrice != null && item.avg24hPrice.Value > 0)
             {
-                sb.AppendLine($"24h avg: {item.avg24hPrice.Value:N0}₽");
+                ResultAvgPriceText.Text = $"24h avg: {item.avg24hPrice.Value:N0}₽";
+            }
+            else
+            {
+                ResultAvgPriceText.Text = string.Empty;
             }
 
             if (!string.IsNullOrWhiteSpace(item.link))
             {
-                sb.AppendLine();
-                sb.AppendLine("Flea market link:");
-                sb.Append(item.link);
+                ResultLinkLabelText.Visibility = Visibility.Visible;
+                ResultLinkText.Visibility = Visibility.Visible;
+                ResultLinkText.Text = item.link;
             }
-
-            OverlayText.Text = sb.ToString();
+            else
+            {
+                ResultLinkLabelText.Visibility = Visibility.Collapsed;
+                ResultLinkText.Visibility = Visibility.Collapsed;
+                ResultLinkText.Text = string.Empty;
+            }
         }
 
         public void MoveToCursor()

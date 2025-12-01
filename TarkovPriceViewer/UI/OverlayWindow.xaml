@@ -14,11 +14,64 @@
         Title="OverlayWindow">
     <Grid>
         <Border Background="#BF000000" CornerRadius="4" Padding="8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0">
-            <TextBlock x:Name="OverlayText"
-                       Foreground="White"
-                       FontSize="14"
-                       Text="Overlay"
-                       TextWrapping="Wrap"/>
+            <Grid>
+                <!-- Estado: Scanning -->
+                <StackPanel x:Name="ScanningPanel" Visibility="Visible">
+                    <TextBlock x:Name="ScanningTextBlock"
+                               Foreground="White"
+                               FontSize="14"
+                               Text="Scanning item..."
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- Estado: Resultado -->
+                <StackPanel x:Name="ResultPanel" Visibility="Collapsed" Margin="0">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Image x:Name="ItemImage"
+                               Width="48"
+                               Height="48"
+                               Margin="0,0,8,0"
+                               Stretch="Uniform"/>
+                        <TextBlock x:Name="ResultItemNameText"
+                                   Foreground="White"
+                                   FontSize="14"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <TextBlock x:Name="ResultLastPriceText"
+                               Foreground="White"
+                               FontSize="13"
+                               Margin="0,0,0,2"/>
+
+                    <TextBlock x:Name="ResultAvgPriceText"
+                               Foreground="White"
+                               FontSize="13"
+                               Margin="0,0,0,4"/>
+
+                    <TextBlock x:Name="ResultLinkLabelText"
+                               Foreground="LightGray"
+                               FontSize="12"
+                               Margin="0,4,0,0"
+                               Text="Flea market link:"
+                               Visibility="Collapsed"/>
+
+                    <TextBlock x:Name="ResultLinkText"
+                               Foreground="LightBlue"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               TextTrimming="CharacterEllipsis"
+                               Visibility="Collapsed"/>
+                </StackPanel>
+
+                <!-- Estado: Error / mensaje simple -->
+                <StackPanel x:Name="ErrorPanel" Visibility="Collapsed">
+                    <TextBlock x:Name="ErrorText"
+                               Foreground="White"
+                               FontSize="13"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>
