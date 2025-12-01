@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media.Imaging;
 using TarkovPriceViewer.Models;
 using TarkovPriceViewer.Services;
 
@@ -93,7 +94,7 @@ namespace TarkovPriceViewer.UI
                 ScanningPanel.Visibility = Visibility.Collapsed;
                 ErrorPanel.Visibility = Visibility.Visible;
                 ResultPanel.Visibility = Visibility.Collapsed;
-                ErrorText.Text = $"{baseText}...\r\n(Items data not loaded yet)";
+                ErrorText.Text = "Items data not loaded yet";
                 return;
             }
 
@@ -112,7 +113,7 @@ namespace TarkovPriceViewer.UI
                 ScanningPanel.Visibility = Visibility.Collapsed;
                 ErrorPanel.Visibility = Visibility.Visible;
                 ResultPanel.Visibility = Visibility.Collapsed;
-                ErrorText.Text = $"Scanning {itemName}...\r\nItem not found in TarkovDev data.";
+                ErrorText.Text = "Item not found in TarkovDev data.";
                 return;
             }
 
@@ -122,6 +123,32 @@ namespace TarkovPriceViewer.UI
             ResultPanel.Visibility = Visibility.Visible;
 
             ResultItemNameText.Text = item.name;
+
+            // Imagen del objeto desde TarkovDev (iconLink)
+            if (!string.IsNullOrWhiteSpace(item.iconLink))
+            {
+                try
+                {
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.UriSource = new Uri(item.iconLink, UriKind.Absolute);
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.EndInit();
+
+                    ItemImage.Source = bitmap;
+                    ItemImage.Visibility = Visibility.Visible;
+                }
+                catch
+                {
+                    ItemImage.Source = null;
+                    ItemImage.Visibility = Visibility.Collapsed;
+                }
+            }
+            else
+            {
+                ItemImage.Source = null;
+                ItemImage.Visibility = Visibility.Collapsed;
+            }
 
             if (item.lastLowPrice != null)
             {

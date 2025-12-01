@@ -190,6 +190,7 @@ namespace TarkovPriceViewer.Services
     fleaMarketFee
     link
     wikiLink
+    iconLink
     width
     height
     properties {{
