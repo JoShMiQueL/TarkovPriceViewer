@@ -10,10 +10,10 @@
         Topmost="True"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
-        Title="OverlayWindow"
-        Width="800" Height="600">
+        SizeToContent="WidthAndHeight"
+        Title="OverlayWindow">
     <Grid>
-        <Border Background="#BF000000" CornerRadius="4" Padding="8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="16">
+        <Border Background="#BF000000" CornerRadius="4" Padding="8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0">
             <TextBlock x:Name="OverlayText"
                        Foreground="White"
                        FontSize="14"
