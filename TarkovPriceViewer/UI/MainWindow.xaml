@@ -7,6 +7,13 @@
         mc:Ignorable="d"
         Title="Tarkov Price Viewer" Height="450" Width="800">
     <Grid Background="#111111">
-
+        <TextBlock x:Name="StatusText"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Bottom"
+                   Margin="8"
+                   Foreground="White"
+                   FontSize="12"
+                   Opacity="0.8"
+                   Text="Initializing..."/>
     </Grid>
 </Window>
