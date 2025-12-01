@@ -97,8 +97,9 @@ namespace TarkovPriceViewer.Utils
                 }
 
                 long size = new FileInfo(path).Length;
+                string sizeText = TarkovPriceViewer.Utils.Formatting.FormatFileSize(size);
                 json = File.ReadAllText(path);
-                AppLogger.Info("TarkovDevCache.TryLoadItemsJson", $"Loaded items cache from '{path}' (size={size} bytes)");
+                AppLogger.Info("TarkovDevCache.TryLoadItemsJson", $"Loaded items cache from '{path}' (size={sizeText})");
                 return true;
             }
             catch (Exception ex)
@@ -115,7 +116,8 @@ namespace TarkovPriceViewer.Utils
                 {
                 }
 
-                AppLogger.Error("TarkovDevCache.TryLoadItemsJson", $"Error loading items cache from '{path}' (size={size} bytes)", ex);
+                string sizeText = size > 0 ? TarkovPriceViewer.Utils.Formatting.FormatFileSize(size) : "0 B";
+                AppLogger.Error("TarkovDevCache.TryLoadItemsJson", $"Error loading items cache from '{path}' (size={sizeText})", ex);
                 json = string.Empty;
                 return false;
             }
@@ -129,7 +131,8 @@ namespace TarkovPriceViewer.Utils
             {
                 File.WriteAllText(path, json);
                 long size = new FileInfo(path).Length;
-                AppLogger.Info("TarkovDevCache.SaveItemsJson", $"Saved items cache to '{path}' (size={size} bytes)");
+                string sizeText = Formatting.FormatFileSize(size);
+                AppLogger.Info("TarkovDevCache.SaveItemsJson", $"Saved items cache to '{path}' (size={sizeText})");
             }
             catch (Exception ex)
             {
