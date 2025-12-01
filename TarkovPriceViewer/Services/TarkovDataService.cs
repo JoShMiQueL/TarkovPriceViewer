@@ -50,7 +50,7 @@ namespace TarkovPriceViewer.Services
             {
                 if (Data == null)
                 {
-                    AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", $"Items not loaded in memory, trying to obtain Tarkov items from local cache file (LastUpdated={LastUpdated:yyyy-MM-dd HH:mm:ss}, {FormatElapsed(elapsed)}).");
+                    AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", $"Loading Tarkov items from local cache file (LastUpdated={LastUpdated:yyyy-MM-dd HH:mm:ss}, {FormatElapsed(elapsed)}).");
                     LoadFromLocalFile();
                 }
                 else
