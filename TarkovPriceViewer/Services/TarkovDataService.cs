@@ -17,7 +17,6 @@ namespace TarkovPriceViewer.Services
         DateTime LastUpdated { get; }
         bool IsLoaded { get; }
         Task UpdateItemListAPIAsync(bool force = false);
-        string GetLastUpdatedText();
     }
 
     public class TarkovDataService : ITarkovDataService
@@ -46,15 +45,17 @@ namespace TarkovPriceViewer.Services
         {
             AppSettings settings = _settingsService.Settings;
 
-            if (!force && (DateTime.Now - LastUpdated) < CacheDuration)
+            TimeSpan elapsed = GetLastUpdatedElapsed();
+            if (!force && elapsed < CacheDuration)
             {
                 if (Data == null)
                 {
+                    AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", $"Items not loaded in memory, trying to obtain Tarkov items from local cache file (LastUpdated={LastUpdated:yyyy-MM-dd HH:mm:ss}, {FormatElapsed(elapsed)}).");
                     LoadFromLocalFile();
                 }
                 else
                 {
-                    AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", $"No need to update TarkovDev API. {GetLastUpdatedText()}");
+                    AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", $"Using Tarkov items already loaded in memory (from previous tarkov.dev API call). {FormatElapsed(elapsed)}.");
                 }
 
                 return;
@@ -62,7 +63,7 @@ namespace TarkovPriceViewer.Services
 
             try
             {
-                AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", "Updating TarkovDev API...");
+                AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", "Updating items from tarkov.dev GraphQL endpoint (https://api.tarkov.dev/graphql)...");
 
                 var queryDictionary = new Dictionary<string, string>
                 {
@@ -92,13 +93,16 @@ namespace TarkovPriceViewer.Services
 
                 LastUpdated = DateTime.Now;
                 IsLoaded = true;
-                File.WriteAllText(TarkovDevItemsCacheFilePath, responseContent);
 
-                AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", "TarkovDev API updated.");
+                // Persist updated items JSON via shared TarkovDev cache helper
+                TarkovDevCache.SaveItemsJson(responseContent);
+
+                TimeSpan updatedAge = GetLastUpdatedElapsed();
+                AppLogger.Info("TarkovDataService.UpdateItemListAPIAsync", $"Tarkov items updated successfully from tarkov.dev. {FormatElapsed(updatedAge)}.");
             }
             catch (Exception ex)
             {
-                AppLogger.Error("TarkovDataService.UpdateItemListAPIAsync", "Error updating TarkovDev API", ex);
+                AppLogger.Error("TarkovDataService.UpdateItemListAPIAsync", "Error updating Tarkov items from tarkov.dev", ex);
             }
         }
 
@@ -106,12 +110,10 @@ namespace TarkovPriceViewer.Services
         {
             try
             {
-                if (!File.Exists(TarkovDevItemsCacheFilePath))
+                if (!TarkovDevCache.TryLoadItemsJson(out string responseContent))
                 {
                     return;
                 }
-
-                string responseContent = File.ReadAllText(TarkovDevItemsCacheFilePath);
 
                 if (!responseContent.Contains("foundInRaid") || !responseContent.Contains("\"itemRequirements\":[{\"id\":"))
                 {
@@ -124,7 +126,7 @@ namespace TarkovPriceViewer.Services
                     {
                     }
 
-                    AppLogger.Info("TarkovDataService.LoadFromLocalFile", $"TarkovDevAPI cache outdated in '{TarkovDevItemsCacheFilePath}' (size={size} bytes), forcing update...");
+                    AppLogger.Info("TarkovDataService.LoadFromLocalFile", $"Local Tarkov items cache in '{TarkovDevItemsCacheFilePath}' is outdated (size={size} bytes), forcing remote update from tarkov.dev...");
 
                     UpdateItemListAPIAsync(force: true).GetAwaiter().GetResult();
                     return;
@@ -141,7 +143,8 @@ namespace TarkovPriceViewer.Services
                 }
 
                 IsLoaded = true;
-                AppLogger.Info("TarkovDataService.LoadFromLocalFile", $"TarkovDev API loaded from local file. {GetLastUpdatedText()}");
+                TimeSpan age = GetLastUpdatedElapsed();
+                AppLogger.Info("TarkovDataService.LoadFromLocalFile", $"Tarkov items obtained from local cache file ({FormatElapsed(age)}).");
             }
             catch (Exception ex)
             {
@@ -157,24 +160,28 @@ namespace TarkovPriceViewer.Services
                 {
                 }
 
-                AppLogger.Error("TarkovDataService.LoadFromLocalFile", $"Error loading Tarkov API from local file '{TarkovDevItemsCacheFilePath}' (size={size} bytes)", ex);
+                AppLogger.Error("TarkovDataService.LoadFromLocalFile", $"Error loading Tarkov items from local cache file '{TarkovDevItemsCacheFilePath}' (size={size} bytes)", ex);
             }
         }
 
-        public string GetLastUpdatedText()
+        private TimeSpan GetLastUpdatedElapsed()
         {
-            TimeSpan elapsed = DateTime.Now - LastUpdated;
-            if (elapsed.TotalHours < 1)
+            return DateTime.Now - LastUpdated;
+        }
+
+        private string FormatElapsed(TimeSpan elapsed)
+        {
+            if (elapsed.TotalSeconds < 60)
             {
-                return $"Updated: {(int)elapsed.TotalMinutes} minute(s) ago";
+                return $"{(int)elapsed.TotalSeconds} second(s) ago";
             }
 
-            if (elapsed.TotalDays < 1)
+            if (elapsed.TotalMinutes < 60)
             {
-                return $"Updated: {(int)elapsed.TotalHours} hour(s) ago";
+                return $"{(int)elapsed.TotalMinutes} minute(s) ago";
             }
 
-            return $"Updated: {(int)elapsed.TotalDays} day(s) ago";
+            return $"{(int)elapsed.TotalHours} hour(s) ago";
         }
 
         private string GetGraphQLQuery(string lang, string gameMode)
