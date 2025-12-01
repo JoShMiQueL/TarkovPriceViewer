@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
+
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Interop;
@@ -25,6 +26,8 @@ namespace TarkovPriceViewer
         private readonly ISettingsService _settingsService;
         private readonly ITarkovDataService _tarkovDataService;
         private readonly ITarkovTrackerService _tarkovTrackerService;
+
+        private bool _isInitialized;
 
         private const int HotkeyIdShowOverlay = 1;
         private const int HotkeyIdHideOverlay = 2;
@@ -49,11 +52,30 @@ namespace TarkovPriceViewer
 
             _settingsService.Load();
 
-            _ = _tarkovDataService.UpdateItemListAPIAsync();
-            _ = _tarkovTrackerService.UpdateTarkovTrackerAPI();
-
             var version = VersionHelper.GetDisplayVersion();
             Title = $"Tarkov Price Viewer v{version}";
+
+            StatusText.Text = "Starting initialization...";
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            try
+            {
+                StatusText.Text = "Loading items from tarkov.dev...";
+                await _tarkovDataService.UpdateItemListAPIAsync().ConfigureAwait(true);
+
+                StatusText.Text = "Updating TarkovTracker progress...";
+                await _tarkovTrackerService.UpdateTarkovTrackerAPI(true).ConfigureAwait(true);
+
+                _isInitialized = true;
+                StatusText.Text = "Ready";
+            }
+            catch (Exception ex)
+            {
+                StatusText.Text = $"Initialization error: {ex.Message}";
+            }
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -123,6 +145,13 @@ namespace TarkovPriceViewer
                 return;
             }
 
+            if (!_isInitialized)
+            {
+                StatusText.Text = "Waiting for initialization to finish before showing overlay...";
+                return;
+            }
+
+            overlay.SimulateScanHardcodedItemAsync();
             overlay.MoveToCursor();
 
             if (!overlay.IsVisible)
