@@ -19,13 +19,24 @@ namespace TarkovPriceViewer
     public partial class MainWindow : Window
     {
         private readonly ISettingsService _settingsService;
+        private readonly ITarkovDataService _tarkovDataService;
+        private readonly ITarkovTrackerService _tarkovTrackerService;
 
-        public MainWindow(ISettingsService settingsService)
+        public MainWindow(
+            ISettingsService settingsService,
+            ITarkovDataService tarkovDataService,
+            ITarkovTrackerService tarkovTrackerService)
         {
             InitializeComponent();
 
             _settingsService = settingsService;
+            _tarkovDataService = tarkovDataService;
+            _tarkovTrackerService = tarkovTrackerService;
+
             _settingsService.Load();
+
+            _ = _tarkovDataService.UpdateItemListAPIAsync();
+            _ = _tarkovTrackerService.UpdateTarkovTrackerAPI();
 
             var version = VersionHelper.GetDisplayVersion();
             Title = $"Tarkov Price Viewer v{version}";
