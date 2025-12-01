@@ -134,8 +134,7 @@ namespace TarkovPriceViewer.UI
             }
             else
             {
-                ItemImage.Source = null;
-                ItemImage.Visibility = Visibility.Collapsed;
+                ItemImage.Visibility = Visibility.Visible;
             }
 
             if (item.lastLowPrice != null)
