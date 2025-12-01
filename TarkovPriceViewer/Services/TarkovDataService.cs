@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using TarkovPriceViewer.Configuration;
 using TarkovPriceViewer.Models;
+using TarkovPriceViewer.Utils;
 
 namespace TarkovPriceViewer.Services
 {
@@ -21,7 +22,7 @@ namespace TarkovPriceViewer.Services
 
     public class TarkovDataService : ITarkovDataService
     {
-        private const string TarkovDevItemsCacheFilePath = "tarkovdev-items-cache.json";
+        private static readonly string TarkovDevItemsCacheFilePath = CachePaths.TarkovDevItemsCacheFilePath;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(15);
 
         private readonly ISettingsService _settingsService;
