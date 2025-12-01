@@ -13,7 +13,7 @@
         SizeToContent="WidthAndHeight"
         Title="OverlayWindow">
     <Grid>
-        <Border Background="#BF000000" CornerRadius="4" Padding="8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0">
+        <Border Background="#BF000000" CornerRadius="1" Padding="8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0">
             <Grid>
                 <!-- Estado: Scanning -->
                 <StackPanel x:Name="ScanningPanel" Visibility="Visible">
@@ -25,7 +25,7 @@
                 </StackPanel>
 
                 <!-- Estado: Resultado -->
-                <StackPanel x:Name="ResultPanel" Visibility="Collapsed" Margin="0">
+                <StackPanel x:Name="ResultPanel" Visibility="Visible" Margin="0">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                         <Image x:Name="ItemImage"
                                Width="48"
@@ -36,40 +36,45 @@
                                    Foreground="White"
                                    FontSize="14"
                                    FontWeight="Bold"
-                                   TextWrapping="Wrap"/>
+                                   TextWrapping="Wrap"
+                                   Text="Bolts"/>
                     </StackPanel>
 
                     <TextBlock x:Name="ResultLastPriceText"
                                Foreground="White"
                                FontSize="13"
-                               Margin="0,0,0,2"/>
+                               Margin="0,0,0,2"
+                               Text="Last price: 23.000₽"/>
 
                     <TextBlock x:Name="ResultAvgPriceText"
                                Foreground="White"
                                FontSize="13"
-                               Margin="0,0,0,4"/>
+                               Margin="0,0,0,4"
+                               Text="24h avg: 41.492₽"/>
 
                     <TextBlock x:Name="ResultLinkLabelText"
                                Foreground="LightGray"
                                FontSize="12"
                                Margin="0,4,0,0"
                                Text="Flea market link:"
-                               Visibility="Collapsed"/>
+                               Visibility="Visible"/>
 
                     <TextBlock x:Name="ResultLinkText"
                                Foreground="LightBlue"
                                FontSize="12"
                                TextWrapping="Wrap"
                                TextTrimming="CharacterEllipsis"
-                               Visibility="Collapsed"/>
+                               Text="https://tarkov.dev/item/bolts"
+                               Visibility="Visible"/>
                 </StackPanel>
 
                 <!-- Estado: Error / mensaje simple -->
-                <StackPanel x:Name="ErrorPanel" Visibility="Collapsed">
+                <StackPanel x:Name="ErrorPanel" Visibility="Visible">
                     <TextBlock x:Name="ErrorText"
                                Foreground="White"
                                FontSize="13"
-                               TextWrapping="Wrap"/>
+                               TextWrapping="Wrap"
+                               Text="Item not found in TarkovDev data."/>
                 </StackPanel>
             </Grid>
         </Border>

@@ -90,6 +90,7 @@ namespace TarkovPriceViewer.Models
             public int? fleaMarketFee { get; set; }
             public string link { get; set; }
             public string wikiLink { get; set; }
+            public string iconLink { get; set; }
             public int? width { get; set; }
             public int? height { get; set; }
             public Properties properties { get; set; }
