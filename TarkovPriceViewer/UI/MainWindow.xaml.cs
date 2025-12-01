@@ -123,6 +123,8 @@ namespace TarkovPriceViewer
                 return;
             }
 
+            overlay.MoveToCursor();
+
             if (!overlay.IsVisible)
             {
                 overlay.Show();
