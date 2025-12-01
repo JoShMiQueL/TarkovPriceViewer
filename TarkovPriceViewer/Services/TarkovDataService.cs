@@ -22,7 +22,7 @@ namespace TarkovPriceViewer.Services
     public class TarkovDataService : ITarkovDataService
     {
         private const string TarkovDevItemsCacheFilePath = "tarkovdev-items-cache.json";
-        private const TimeSpan CacheDuration = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(15);
 
         private readonly ISettingsService _settingsService;
         private readonly object _lockObject = new object();
