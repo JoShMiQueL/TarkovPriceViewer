@@ -126,7 +126,7 @@ namespace TarkovPriceViewer.UI
             ResultItemNameText.Text = item.name;
 
             // Item image from TarkovDev (iconLink) via shared cache helper
-            var iconBitmap = TarkovDevIconCache.GetIcon(item);
+            var iconBitmap = TarkovDevCache.GetIcon(item);
             if (iconBitmap != null)
             {
                 ItemImage.Source = iconBitmap;

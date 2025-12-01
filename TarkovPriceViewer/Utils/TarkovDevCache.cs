@@ -8,7 +8,7 @@ using TarkovPriceViewer.Services;
 
 namespace TarkovPriceViewer.Utils
 {
-    public static class TarkovDevIconCache
+    public static class TarkovDevCache
     {
         private static readonly Dictionary<string, BitmapImage> _iconCache = new Dictionary<string, BitmapImage>();
         private static readonly object _iconCacheLock = new object();
@@ -29,7 +29,7 @@ namespace TarkovPriceViewer.Utils
             {
                 if (_iconCache.TryGetValue(iconUrl, out BitmapImage cached))
                 {
-                    AppLogger.Info("TarkovDevIconCache.GetIcon", $"Memory cache hit for icon '{item.name}' ({iconUrl})");
+                    AppLogger.Info("TarkovDevCache.GetIcon", $"Memory cache hit for icon '{item.name}' ({iconUrl})");
                     return cached;
                 }
             }
@@ -43,7 +43,7 @@ namespace TarkovPriceViewer.Utils
                 bitmap = LoadBitmapFromFile(localPath);
                 if (bitmap != null)
                 {
-                    AppLogger.Info("TarkovDevIconCache.GetIcon", $"Disk cache hit for icon '{item.name}' -> {localPath}");
+                    AppLogger.Info("TarkovDevCache.GetIcon", $"Disk cache hit for icon '{item.name}' -> {localPath}");
                 }
             }
 
@@ -52,20 +52,19 @@ namespace TarkovPriceViewer.Utils
             {
                 try
                 {
-                    // Download raw bytes and save to disk
-                    AppLogger.Info("TarkovDevIconCache.GetIcon", $"Downloading icon from '{iconUrl}'");
+                    AppLogger.Info("TarkovDevCache.GetIcon", $"Downloading icon from '{iconUrl}'");
                     byte[] data = _httpClient.GetByteArrayAsync(iconUrl).GetAwaiter().GetResult();
                     if (data != null && data.Length > 0)
                     {
                         File.WriteAllBytes(localPath, data);
-                        AppLogger.Info("TarkovDevIconCache.GetIcon", $"Saved icon for '{item.name}' to {localPath} ({data.Length} bytes)");
+                        AppLogger.Info("TarkovDevCache.GetIcon", $"Saved icon for '{item.name}' to {localPath} ({data.Length} bytes)");
                         bitmap = LoadBitmapFromFile(localPath);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     bitmap = null;
-                    AppLogger.Error("TarkovDevIconCache.GetIcon", $"Error downloading or saving icon for '{item?.name}' from '{iconUrl}'");
+                    AppLogger.Error("TarkovDevCache.GetIcon", $"Error downloading or saving icon for '{item?.name}' from '{iconUrl}'", ex);
                 }
             }
 
@@ -82,6 +81,60 @@ namespace TarkovPriceViewer.Utils
             }
 
             return bitmap;
+        }
+
+        public static bool TryLoadItemsJson(out string json)
+        {
+            json = string.Empty;
+            string path = CachePaths.TarkovDevItemsCacheFilePath;
+
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    AppLogger.Info("TarkovDevCache.TryLoadItemsJson", $"Items cache file not found at '{path}'");
+                    return false;
+                }
+
+                long size = new FileInfo(path).Length;
+                json = File.ReadAllText(path);
+                AppLogger.Info("TarkovDevCache.TryLoadItemsJson", $"Loaded items cache from '{path}' (size={size} bytes)");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                long size = 0;
+                try
+                {
+                    if (File.Exists(path))
+                    {
+                        size = new FileInfo(path).Length;
+                    }
+                }
+                catch
+                {
+                }
+
+                AppLogger.Error("TarkovDevCache.TryLoadItemsJson", $"Error loading items cache from '{path}' (size={size} bytes)", ex);
+                json = string.Empty;
+                return false;
+            }
+        }
+
+        public static void SaveItemsJson(string json)
+        {
+            string path = CachePaths.TarkovDevItemsCacheFilePath;
+
+            try
+            {
+                File.WriteAllText(path, json);
+                long size = new FileInfo(path).Length;
+                AppLogger.Info("TarkovDevCache.SaveItemsJson", $"Saved items cache to '{path}' (size={size} bytes)");
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Error("TarkovDevCache.SaveItemsJson", $"Error saving items cache to '{path}'", ex);
+            }
         }
 
         private static BitmapImage LoadBitmapFromFile(string path)
