@@ -23,6 +23,9 @@ namespace TarkovPriceViewer
                     services.AddHttpClient();
 
                     services.AddSingleton<ISettingsService, SettingsService>();
+                    services.AddSingleton<ITarkovDevApiClient, TarkovDevApiClient>();
+                    services.AddSingleton<ITarkovDevCacheService, TarkovDevCacheService>();
+                    services.AddSingleton<IItemSnapshotService, ItemSnapshotService>();
 
                     services.AddSingleton<MainWindow>();
                     services.AddSingleton<OverlayWindow>();
