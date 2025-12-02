@@ -12,6 +12,8 @@ namespace TarkovPriceViewer.Utils
     {
         private static readonly Dictionary<string, BitmapImage> _iconCache = new Dictionary<string, BitmapImage>();
         private static readonly object _iconCacheLock = new object();
+        private static readonly Dictionary<string, BitmapImage> _traderIconCache = new Dictionary<string, BitmapImage>();
+        private static readonly object _traderIconCacheLock = new object();
         private static readonly HttpClient _httpClient = new HttpClient();
 
         public static BitmapImage GetIcon(TarkovDevAPI.Item item)
@@ -76,6 +78,81 @@ namespace TarkovPriceViewer.Utils
                     if (!_iconCache.ContainsKey(iconUrl))
                     {
                         _iconCache[iconUrl] = bitmap;
+                    }
+                }
+            }
+
+            return bitmap;
+        }
+
+        public static BitmapImage GetTraderIcon(string traderName, string imageLink)
+        {
+            if (string.IsNullOrWhiteSpace(traderName) || string.IsNullOrWhiteSpace(imageLink))
+            {
+                return null;
+            }
+
+            string cacheKey = traderName.Trim();
+            BitmapImage bitmap = null;
+
+            // 1) In-memory cache by trader name
+            lock (_traderIconCacheLock)
+            {
+                if (_traderIconCache.TryGetValue(cacheKey, out BitmapImage cached))
+                {
+                    AppLogger.Info("TarkovDevCache.GetTraderIcon", $"Memory cache hit for trader '{traderName}'");
+                    return cached;
+                }
+            }
+
+            // 2) Disk cache by trader name
+            string safeName = string.Concat(cacheKey.Split(Path.GetInvalidFileNameChars()));
+            if (string.IsNullOrWhiteSpace(safeName))
+            {
+                safeName = "trader";
+            }
+
+            string cacheFileName = safeName + ".png";
+            string localPath = Path.Combine(CachePaths.TarkovDevTradersFolder, cacheFileName);
+
+            if (File.Exists(localPath) && new FileInfo(localPath).Length > 0)
+            {
+                bitmap = LoadBitmapFromFile(localPath);
+                if (bitmap != null)
+                {
+                    AppLogger.Info("TarkovDevCache.GetTraderIcon", $"Disk cache hit for trader '{traderName}' -> {localPath}");
+                }
+            }
+
+            // 3) Download from URL and save to disk if needed
+            if (bitmap == null)
+            {
+                try
+                {
+                    AppLogger.Info("TarkovDevCache.GetTraderIcon", $"Downloading trader icon for '{traderName}' from '{imageLink}'");
+                    byte[] data = _httpClient.GetByteArrayAsync(imageLink).GetAwaiter().GetResult();
+                    if (data != null && data.Length > 0)
+                    {
+                        File.WriteAllBytes(localPath, data);
+                        AppLogger.Info("TarkovDevCache.GetTraderIcon", $"Saved trader icon for '{traderName}' to {localPath} ({data.Length} bytes)");
+                        bitmap = LoadBitmapFromFile(localPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    bitmap = null;
+                    AppLogger.Error("TarkovDevCache.GetTraderIcon", $"Error downloading or saving trader icon for '{traderName}' from '{imageLink}'", ex);
+                }
+            }
+
+            // 4) Store in in-memory cache
+            if (bitmap != null)
+            {
+                lock (_traderIconCacheLock)
+                {
+                    if (!_traderIconCache.ContainsKey(cacheKey))
+                    {
+                        _traderIconCache[cacheKey] = bitmap;
                     }
                 }
             }

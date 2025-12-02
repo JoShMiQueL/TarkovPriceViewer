@@ -1,6 +1,7 @@
 <Window x:Class="TarkovPriceViewer.UI.OverlayWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
@@ -12,11 +13,18 @@
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
         Title="OverlayWindow">
+    
+    <Window.Resources>
+        <Thickness x:Key="PriceValueMargin">64,0,0,0</Thickness>
+        <sys:String x:Key="CurrencyValuePlaceholderText">100.000₽ (33.333₽)</sys:String>
+        <sys:String x:Key="SellToValuePlaceholderText">Trader</sys:String>
+    </Window.Resources>
+
     <Grid>
         <Border Background="#BF000000" CornerRadius="1" Padding="8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0">
             <Grid>
                 <!-- Estado: Scanning -->
-                <StackPanel x:Name="ScanningPanel" Visibility="Visible">
+                <StackPanel x:Name="ScanningPanel" Visibility="Collapsed">
                     <TextBlock x:Name="ScanningTextBlock"
                                Foreground="White"
                                FontSize="14"
@@ -25,52 +33,163 @@
                 </StackPanel>
 
                 <!-- Estado: Resultado -->
-                <StackPanel x:Name="ResultPanel" Visibility="Visible" Margin="0">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                        <Image x:Name="ItemImage"
-                               Width="48"
-                               Height="48"
-                               Margin="0,0,8,0"
-                               Stretch="Uniform"
-                               Source="pack://application:,,,/TarkovPriceViewer;component/Assets/Images/BoltsPlaceholder.png"/>
+                <StackPanel x:Name="ResultPanel" Visibility="Visible" Margin="0" Grid.IsSharedSizeScope="True">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
                         <TextBlock x:Name="ResultItemNameText"
+                                   Grid.Column="0"
                                    Foreground="White"
                                    FontSize="14"
                                    FontWeight="Bold"
                                    TextWrapping="Wrap"
-                                   Text="Bolts"/>
-                    </StackPanel>
+                                   VerticalAlignment="Center"
+                                   Text="Bolts (3 Slots)" />
 
-                    <TextBlock x:Name="ResultLastPriceText"
-                               Foreground="White"
-                               FontSize="13"
-                               Margin="0,0,0,2"
-                               Text="Last price: 23.000₽"/>
+                        <Image x:Name="ItemImage"
+                               Grid.Column="1"
+                               Width="32"
+                               Height="32"
+                               Stretch="Uniform"
+                               Source="pack://application:,,,/TarkovPriceViewer;component/Assets/Images/BoltsPlaceholder.png"/>
+                    </Grid>
 
-                    <TextBlock x:Name="ResultAvgPriceText"
-                               Foreground="White"
-                               FontSize="13"
-                               Margin="0,0,0,4"
-                               Text="24h avg: 41.492₽"/>
+                    <Separator Height="1" Margin="-8,8,-8,4"/>
 
-                    <TextBlock x:Name="ResultLinkLabelText"
-                               Foreground="LightGray"
-                               FontSize="12"
-                               Margin="0,4,0,0"
-                               Text="Flea market link:"
-                               Visibility="Visible"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="ValueColumn" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
-                    <TextBlock x:Name="ResultLinkText"
-                               Foreground="LightBlue"
-                               FontSize="12"
-                               TextWrapping="Wrap"
-                               TextTrimming="CharacterEllipsis"
-                               Text="https://tarkov.dev/item/bolts"
-                               Visibility="Visible"/>
+                        <TextBlock x:Name="ResultLastPriceLabelText"
+                                   Grid.Column="0"
+                                   Grid.Row="0"
+                                   Margin="0,0,0,2"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   Text="Last price"/>
+
+                        <TextBlock x:Name="ResultLastPriceText"
+                                   Grid.Column="1"
+                                   Grid.Row="0"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   Margin="{StaticResource PriceValueMargin}"
+                                   Text="{StaticResource CurrencyValuePlaceholderText}"/>
+
+                        <TextBlock x:Name="ResultAvgPriceLabelText"
+                                   Grid.Column="0"
+                                   Grid.Row="1"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   Text="24h avg"/>
+
+                        <TextBlock x:Name="ResultAvgPriceText"
+                                   Grid.Column="1"
+                                   Grid.Row="1"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   Margin="{StaticResource PriceValueMargin}"
+                                   Text="{StaticResource CurrencyValuePlaceholderText}"/>
+                    </Grid>
+                    
+                    <Separator Height="1" Margin="-8,4"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="ValueColumn" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="ResultProfitFleaVsTraderLabelText"
+                                   Grid.Column="0"
+                                   Grid.Row="0"
+                                   Margin="0,0,0,2"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   Text="Profit Flea vs Trader"/>
+
+                        <TextBlock x:Name="ResultProfitFleaVsTraderText"
+                                   Grid.Column="1"
+                                   Grid.Row="0"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   Margin="{StaticResource PriceValueMargin}"
+                                   Text="{StaticResource CurrencyValuePlaceholderText}"/>
+
+                        <TextBlock x:Name="ResultSellToLabelText"
+                                   Grid.Column="0"
+                                   Grid.Row="1"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   Text="Sell to"/>
+
+                        <TextBlock x:Name="ResultSellToText"
+                                   Grid.Column="1"
+                                   Grid.Row="1"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   Margin="{StaticResource PriceValueMargin}"
+                                   Text="{StaticResource SellToValuePlaceholderText}"/>
+                    </Grid>
+
+                    <Separator Height="1" Margin="-8,4"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="ValueColumn" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="24"
+                                     Height="24">
+                                <Ellipse.Fill>
+                                    <ImageBrush x:Name="TraderImageBrush"
+                                                ImageSource="pack://application:,,,/TarkovPriceViewer;component/Assets/Images/TherapistPlaceholder.png"
+                                                Stretch="UniformToFill" />
+                                </Ellipse.Fill>
+                            </Ellipse>
+
+                            <TextBlock x:Name="ResultBestTraderLabelText"
+                                       Grid.Column="0"
+                                       Grid.Row="0"
+                                       Margin="5,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="White"
+                                       FontSize="13"
+                                       Text="Therapist"/>
+                        </StackPanel>
+
+                        <TextBlock x:Name="ResultBestTraderText"
+                                   Grid.Column="1"
+                                   Grid.Row="0"
+                                   VerticalAlignment="Center"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   Margin="{StaticResource PriceValueMargin}"
+                                   Text="{StaticResource CurrencyValuePlaceholderText}"/>
+                    </Grid>
                 </StackPanel>
 
                 <!-- Estado: Error / mensaje simple -->
-                <StackPanel x:Name="ErrorPanel" Visibility="Visible">
+                <StackPanel x:Name="ErrorPanel" Visibility="Collapsed">
                     <TextBlock x:Name="ErrorText"
                                Foreground="White"
                                FontSize="13"

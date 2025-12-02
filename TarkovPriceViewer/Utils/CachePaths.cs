@@ -17,12 +17,16 @@ namespace TarkovPriceViewer.Utils
         public static readonly string TarkovDevIconsFolder =
             Path.Combine(TarkovDevFolder, "Icons");
 
+        public static readonly string TarkovDevTradersFolder =
+            Path.Combine(TarkovDevFolder, "Traders");
+
         static CachePaths()
         {
             try
             {
                 Directory.CreateDirectory(TarkovDevFolder);
                 Directory.CreateDirectory(TarkovDevIconsFolder);
+                Directory.CreateDirectory(TarkovDevTradersFolder);
             }
             catch
             {
