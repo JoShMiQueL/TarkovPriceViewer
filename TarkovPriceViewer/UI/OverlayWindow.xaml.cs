@@ -6,14 +6,16 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
+using TarkovPriceViewer.Models;
 using TarkovPriceViewer.Services;
-using TarkovPriceViewer.Utils;
 
 namespace TarkovPriceViewer.UI
 {
     public partial class OverlayWindow : Window
     {
         private readonly ISettingsService _settingsService;
+        private readonly IItemSnapshotService _itemSnapshotService;
+        private readonly ITarkovDevCacheService _tarkovDevCacheService;
 
         // Debug flag: when true, do NOT auto-hide on mouse leave (useful while debugging overlay)
         public bool DebugDisableAutoHideOnLeave { get; set; }
@@ -29,11 +31,15 @@ namespace TarkovPriceViewer.UI
         private static extern bool GetCursorPos(out POINT lpPoint);
 
         public OverlayWindow(
-            ISettingsService settingsService)
+            ISettingsService settingsService,
+            IItemSnapshotService itemSnapshotService,
+            ITarkovDevCacheService tarkovDevCacheService)
         {
             InitializeComponent();
 
             _settingsService = settingsService;
+            _itemSnapshotService = itemSnapshotService;
+            _tarkovDevCacheService = tarkovDevCacheService;
 
             // For debugging: keep overlay open even when mouse leaves
             DebugDisableAutoHideOnLeave = true;
@@ -50,6 +56,40 @@ namespace TarkovPriceViewer.UI
             }
 
             Opacity = opacity * 0.01;
+        }
+
+        public async Task ShowTestItemAsync()
+        {
+            const string testItemName = "Salewa";
+
+            // Find the item in the current snapshot by name
+            ItemSnapshot snapshot = _itemSnapshotService.FindByName(testItemName);
+
+            if (snapshot == null)
+            {
+                // If the item is not found, do not break the overlay; just leave the fields empty
+                return;
+            }
+
+            // Name
+            if (ResultItemNameText != null)
+            {
+                ResultItemNameText.Text = snapshot.Name;
+            }
+
+            // Icon using the new icon cache service
+            if (!string.IsNullOrWhiteSpace(snapshot.Id) && !string.IsNullOrWhiteSpace(snapshot.IconLink) && ItemImage != null)
+            {
+                BitmapSource icon = await _tarkovDevCacheService
+                    .GetItemIconAsync(snapshot.Id, snapshot.IconLink)
+                    .ConfigureAwait(true);
+
+                if (icon != null)
+                {
+                    ItemImage.Source = icon;
+                    ItemImage.Visibility = Visibility.Visible;
+                }
+            }
         }
 
         public void MoveToCursor()

@@ -24,6 +24,7 @@ namespace TarkovPriceViewer
     public partial class MainWindow : Window
     {
         private readonly ISettingsService _settingsService;
+        private readonly IItemSnapshotService _itemSnapshotService;
 
         private bool _isInitialized;
 
@@ -38,11 +39,13 @@ namespace TarkovPriceViewer
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
         public MainWindow(
-            ISettingsService settingsService)
+            ISettingsService settingsService,
+            IItemSnapshotService itemSnapshotService)
         {
             InitializeComponent();
 
             _settingsService = settingsService;
+            _itemSnapshotService = itemSnapshotService;
 
             _settingsService.Load();
 
@@ -57,6 +60,9 @@ namespace TarkovPriceViewer
         {
             try
             {
+                StatusText.Text = "Building item snapshot from tarkov.dev...";
+                await _itemSnapshotService.EnsureLoadedAsync().ConfigureAwait(true);
+
                 StatusText.Text = "Updating items from tarkov.dev...";
                 // Start update items...
 
@@ -141,6 +147,9 @@ namespace TarkovPriceViewer
                 StatusText.Text = "Waiting for initialization to finish before showing overlay...";
                 return;
             }
+
+            // Show a test item using the current snapshot
+            _ = overlay.ShowTestItemAsync();
 
             overlay.MoveToCursor();
 
