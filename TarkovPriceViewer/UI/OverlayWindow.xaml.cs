@@ -6,7 +6,6 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
-using TarkovPriceViewer.Models;
 using TarkovPriceViewer.Services;
 using TarkovPriceViewer.Utils;
 
@@ -15,8 +14,6 @@ namespace TarkovPriceViewer.UI
     public partial class OverlayWindow : Window
     {
         private readonly ISettingsService _settingsService;
-        private readonly ITarkovDataService _tarkovDataService;
-        private readonly ITarkovTrackerService _tarkovTrackerService;
 
         // Debug flag: when true, do NOT auto-hide on mouse leave (useful while debugging overlay)
         public bool DebugDisableAutoHideOnLeave { get; set; }
@@ -32,15 +29,11 @@ namespace TarkovPriceViewer.UI
         private static extern bool GetCursorPos(out POINT lpPoint);
 
         public OverlayWindow(
-            ISettingsService settingsService,
-            ITarkovDataService tarkovDataService,
-            ITarkovTrackerService tarkovTrackerService)
+            ISettingsService settingsService)
         {
             InitializeComponent();
 
             _settingsService = settingsService;
-            _tarkovDataService = tarkovDataService;
-            _tarkovTrackerService = tarkovTrackerService;
 
             // For debugging: keep overlay open even when mouse leaves
             DebugDisableAutoHideOnLeave = true;
