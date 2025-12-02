@@ -19,5 +19,7 @@ namespace TarkovPriceViewer.Configuration
         public bool UseTarkovTrackerApi { get; set; } = false;
 
         public string TarkovTrackerApiKey { get; set; } = string.Empty;
+
+        public double FleaVsTraderThreshold { get; set; } = 0.20;
     }
 }
