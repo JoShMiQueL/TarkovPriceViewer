@@ -24,8 +24,6 @@ namespace TarkovPriceViewer
     public partial class MainWindow : Window
     {
         private readonly ISettingsService _settingsService;
-        private readonly ITarkovDataService _tarkovDataService;
-        private readonly ITarkovTrackerService _tarkovTrackerService;
 
         private bool _isInitialized;
 
@@ -40,15 +38,11 @@ namespace TarkovPriceViewer
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
         public MainWindow(
-            ISettingsService settingsService,
-            ITarkovDataService tarkovDataService,
-            ITarkovTrackerService tarkovTrackerService)
+            ISettingsService settingsService)
         {
             InitializeComponent();
 
             _settingsService = settingsService;
-            _tarkovDataService = tarkovDataService;
-            _tarkovTrackerService = tarkovTrackerService;
 
             _settingsService.Load();
 
@@ -148,7 +142,6 @@ namespace TarkovPriceViewer
                 return;
             }
 
-            overlay.SimulateScanHardcodedItemAsync();
             overlay.MoveToCursor();
 
             if (!overlay.IsVisible)
