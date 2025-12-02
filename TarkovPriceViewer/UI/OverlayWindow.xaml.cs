@@ -91,6 +91,8 @@ namespace TarkovPriceViewer.UI
                 return;
             }
 
+            snapshot.LogDebug();
+
             // Name
             if (ResultItemNameText != null)
             {
