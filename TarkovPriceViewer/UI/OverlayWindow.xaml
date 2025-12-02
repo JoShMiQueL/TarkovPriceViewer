@@ -17,7 +17,7 @@
     <Window.Resources>
         <Thickness x:Key="PriceValueMargin">64,0,0,0</Thickness>
         <sys:String x:Key="CurrencyValuePlaceholderText">100.000₽ (33.333₽)</sys:String>
-        <sys:String x:Key="SellToValuePlaceholderText">Trader</sys:String>
+        <sys:String x:Key="SellToValuePlaceholderText">Flea</sys:String>
     </Window.Resources>
 
     <Grid>
@@ -33,7 +33,7 @@
                 </StackPanel>
 
                 <!-- Estado: Resultado -->
-                <StackPanel x:Name="ResultPanel" Visibility="Visible" Margin="0" Grid.IsSharedSizeScope="True">
+                <StackPanel x:Name="ResultPanel" Visibility="Visible" Margin="0">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -47,12 +47,13 @@
                                    FontWeight="Bold"
                                    TextWrapping="Wrap"
                                    VerticalAlignment="Center"
-                                   Text="Bolts (3 Slots)" />
+                                   Text="Bolts" />
 
                         <Image x:Name="ItemImage"
                                Grid.Column="1"
                                Width="32"
                                Height="32"
+                               Margin="32,0,0,0"
                                Stretch="Uniform"
                                Source="pack://application:,,,/TarkovPriceViewer;component/Assets/Images/BoltsPlaceholder.png"/>
                     </Grid>
@@ -61,8 +62,8 @@
 
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
-                            <ColumnDefinition Width="Auto" SharedSizeGroup="ValueColumn" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
@@ -82,6 +83,7 @@
                                    Grid.Row="0"
                                    Foreground="White"
                                    FontSize="13"
+                                   HorizontalAlignment="Right"
                                    Margin="{StaticResource PriceValueMargin}"
                                    Text="{StaticResource CurrencyValuePlaceholderText}"/>
 
@@ -97,6 +99,7 @@
                                    Grid.Row="1"
                                    Foreground="White"
                                    FontSize="13"
+                                   HorizontalAlignment="Right"
                                    Margin="{StaticResource PriceValueMargin}"
                                    Text="{StaticResource CurrencyValuePlaceholderText}"/>
                     </Grid>
@@ -105,8 +108,8 @@
 
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
-                            <ColumnDefinition Width="Auto" SharedSizeGroup="ValueColumn" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
@@ -126,6 +129,7 @@
                                    Grid.Row="0"
                                    Foreground="White"
                                    FontSize="13"
+                                   HorizontalAlignment="Right"
                                    Margin="{StaticResource PriceValueMargin}"
                                    Text="{StaticResource CurrencyValuePlaceholderText}"/>
 
@@ -141,51 +145,55 @@
                                    Grid.Row="1"
                                    Foreground="White"
                                    FontSize="13"
+                                   HorizontalAlignment="Right"
                                    Margin="{StaticResource PriceValueMargin}"
                                    Text="{StaticResource SellToValuePlaceholderText}"/>
                     </Grid>
 
-                    <Separator Height="1" Margin="-8,4"/>
+                    <StackPanel x:Name="TraderSectionContainer">
+                        <Separator Height="1" Margin="-8,4"/>
 
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
-                            <ColumnDefinition Width="Auto" SharedSizeGroup="ValueColumn" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
 
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="24"
-                                     Height="24">
-                                <Ellipse.Fill>
-                                    <ImageBrush x:Name="TraderImageBrush"
-                                                ImageSource="pack://application:,,,/TarkovPriceViewer;component/Assets/Images/TherapistPlaceholder.png"
-                                                Stretch="UniformToFill" />
-                                </Ellipse.Fill>
-                            </Ellipse>
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="24"
+                                        Height="24">
+                                    <Ellipse.Fill>
+                                        <ImageBrush x:Name="TraderImageBrush"
+                                                    ImageSource="/Assets/Images/TraderPlaceholder.png"
+                                                    Stretch="UniformToFill" />
+                                    </Ellipse.Fill>
+                                </Ellipse>
 
-                            <TextBlock x:Name="ResultBestTraderLabelText"
-                                       Grid.Column="0"
+                                <TextBlock x:Name="ResultBestTraderLabelText"
+                                          Grid.Column="0"
+                                          Margin="5,0,0,0"
+                                          VerticalAlignment="Center"
+                                          Foreground="White"
+                                          FontSize="13"
+                                          Text="Therapist"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="ResultBestTraderText"
+                                       Grid.Column="1"
                                        Grid.Row="0"
-                                       Margin="5,0,0,0"
                                        VerticalAlignment="Center"
                                        Foreground="White"
                                        FontSize="13"
-                                       Text="Therapist"/>
-                        </StackPanel>
+                                       HorizontalAlignment="Right"
+                                       Margin="{StaticResource PriceValueMargin}"
+                                       Text="{StaticResource CurrencyValuePlaceholderText}"/>
+                        </Grid>
+                    </StackPanel>
 
-                        <TextBlock x:Name="ResultBestTraderText"
-                                   Grid.Column="1"
-                                   Grid.Row="0"
-                                   VerticalAlignment="Center"
-                                   Foreground="White"
-                                   FontSize="13"
-                                   Margin="{StaticResource PriceValueMargin}"
-                                   Text="{StaticResource CurrencyValuePlaceholderText}"/>
-                    </Grid>
                 </StackPanel>
 
                 <!-- Estado: Error / mensaje simple -->
