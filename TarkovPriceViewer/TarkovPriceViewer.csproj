@@ -45,7 +45,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\Images\BoltsPlaceholder.png" />
-    <Resource Include="Assets\Images\TherapistPlaceholder.png" />
+    <Resource Include="Assets\Images\TraderPlaceholder.png" />
   </ItemGroup>
 
 </Project>

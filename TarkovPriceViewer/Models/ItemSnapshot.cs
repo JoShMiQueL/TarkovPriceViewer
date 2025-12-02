@@ -27,6 +27,7 @@ namespace TarkovPriceViewer.Models
 
         public string BestTraderName { get; set; }
         public int? BestTraderPrice { get; set; }
+        public string BestTraderImageLink { get; set; }
 
         public string PreferredSellTarget { get; set; }
         public int? PreferredSellPrice { get; set; }
