@@ -15,9 +15,11 @@ namespace TarkovPriceViewer.Services
     public interface ITarkovDataService
     {
         TarkovDevAPI.Data Data { get; }
+        System.Collections.Generic.List<TarkovDevAPI.Trader> Traders { get; }
         DateTime LastUpdated { get; }
         bool IsLoaded { get; }
         Task UpdateItemListAPIAsync(bool force = false);
+        Task UpdateTradersAsync();
     }
 
     public class TarkovDataService : ITarkovDataService
@@ -29,6 +31,7 @@ namespace TarkovPriceViewer.Services
         private readonly object _lockObject = new object();
 
         public TarkovDevAPI.Data Data { get; private set; }
+        public System.Collections.Generic.List<TarkovDevAPI.Trader> Traders { get; private set; }
         public DateTime LastUpdated { get; private set; } = DateTime.Now.AddHours(-5);
         public bool IsLoaded { get; private set; }
 
@@ -39,6 +42,36 @@ namespace TarkovPriceViewer.Services
             if (File.Exists(TarkovDevItemsCacheFilePath))
             {
                 LastUpdated = File.GetLastWriteTime(TarkovDevItemsCacheFilePath);
+            }
+        }
+
+        public async Task UpdateTradersAsync()
+        {
+            try
+            {
+                AppLogger.Info("TarkovDataService.UpdateTradersAsync", "Updating traders from tarkov.dev GraphQL endpoint (https://api.tarkov.dev/graphql)...");
+
+                var queryDictionary = new Dictionary<string, string>
+                {
+                    { "query", GetTradersGraphQLQuery() }
+                };
+
+                using var client = new HttpClient();
+                HttpResponseMessage httpResponse = await client.PostAsJsonAsync("https://api.tarkov.dev/graphql", queryDictionary).ConfigureAwait(false);
+                string responseContent = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                var response = JsonNet.JsonConvert.DeserializeObject<TradersResponse>(responseContent);
+
+                lock (_lockObject)
+                {
+                    Traders = response?.data?.traders ?? new System.Collections.Generic.List<TarkovDevAPI.Trader>();
+                }
+
+                AppLogger.Info("TarkovDataService.UpdateTradersAsync", $"Loaded {Traders.Count} traders from tarkov.dev.");
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Error("TarkovDataService.UpdateTradersAsync", "Error updating traders from tarkov.dev", ex);
             }
         }
 
@@ -192,7 +225,6 @@ namespace TarkovPriceViewer.Services
         {
             return DateTime.Now - LastUpdated;
         }
-
 
         private string GetGraphQLQuery(string lang, string gameMode)
         {
@@ -414,6 +446,27 @@ namespace TarkovPriceViewer.Services
     }}
   }}
 }}";
+        }
+
+        private string GetTradersGraphQLQuery()
+        {
+            return @"query Traders {
+  traders(gameMode: regular, lang: en) {
+    id
+    name
+    imageLink
+  }
+}";
+        }
+
+        private class TradersResponse
+        {
+            public TradersData data { get; set; }
+        }
+
+        private class TradersData
+        {
+            public System.Collections.Generic.List<TarkovDevAPI.Trader> traders { get; set; }
         }
     }
 }

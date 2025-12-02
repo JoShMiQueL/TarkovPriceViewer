@@ -64,7 +64,7 @@ namespace TarkovPriceViewer.UI
             string itemName = "Bolts";
             string baseText = $"Scanning {itemName}";
 
-            int[] fakeOcrRangeMs = { 100, 3000 }; // [min, max] fake OCR time
+            int[] fakeOcrRangeMs = { 100, 500 }; // [min, max] fake OCR time
             const int frameDelayMs = 250;          // change this value for faster/slower animation
 
             int[] pattern = { 3, 1, 2 };  // ..., ., ..
@@ -139,7 +139,7 @@ namespace TarkovPriceViewer.UI
 
             if (item.lastLowPrice != null)
             {
-                ResultLastPriceText.Text = $"Last price: {item.lastLowPrice.Value:N0}₽";
+                ResultLastPriceText.Text = $"{item.lastLowPrice.Value:N0}₽";
             }
             else
             {
@@ -148,24 +148,36 @@ namespace TarkovPriceViewer.UI
 
             if (item.avg24hPrice != null && item.avg24hPrice.Value > 0)
             {
-                ResultAvgPriceText.Text = $"24h avg: {item.avg24hPrice.Value:N0}₽";
+                ResultAvgPriceText.Text = $"{item.avg24hPrice.Value:N0}₽";
             }
             else
             {
                 ResultAvgPriceText.Text = string.Empty;
             }
 
-            if (!string.IsNullOrWhiteSpace(item.link))
+            // Trader avatar (temporary: pick Mr. Kerman from traders list if available)
+            try
             {
-                ResultLinkLabelText.Visibility = Visibility.Visible;
-                ResultLinkText.Visibility = Visibility.Visible;
-                ResultLinkText.Text = item.link;
+                if (_tarkovDataService.Traders == null || _tarkovDataService.Traders.Count == 0)
+                {
+                    await _tarkovDataService.UpdateTradersAsync().ConfigureAwait(true);
+                }
+
+                var mr_kerman = _tarkovDataService.Traders?
+                    .FirstOrDefault(t => string.Equals(t.name, "Mr. Kerman", StringComparison.OrdinalIgnoreCase));
+
+                if (mr_kerman != null && !string.IsNullOrWhiteSpace(mr_kerman.imageLink))
+                {
+                    var traderBitmap = TarkovDevCache.GetTraderIcon(mr_kerman.name, mr_kerman.imageLink);
+                    if (traderBitmap != null && TraderImageBrush != null)
+                    {
+                        TraderImageBrush.ImageSource = traderBitmap;
+                    }
+                }
             }
-            else
+            catch
             {
-                ResultLinkLabelText.Visibility = Visibility.Collapsed;
-                ResultLinkText.Visibility = Visibility.Collapsed;
-                ResultLinkText.Text = string.Empty;
+                // Si falla algo al cargar el trader/imagen, simplemente no mostramos avatar dinámico
             }
         }
 

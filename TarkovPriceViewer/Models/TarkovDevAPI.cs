@@ -200,7 +200,9 @@ namespace TarkovPriceViewer.Models
 
         public class Trader
         {
+            public string id { get; set; }
             public string name { get; set; }
+            public string imageLink { get; set; }
             public List<Level> levels { get; set; }
         }
 
