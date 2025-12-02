@@ -60,7 +60,7 @@ namespace TarkovPriceViewer.UI
 
         public async Task ShowTestItemAsync(string id = null, string name = null, string shortName = null)
         {
-            const string defaultTestItemName = "Salewa first aid kit";
+            const string defaultTestItemName = "Bolts";
 
             ItemSnapshot snapshot = null;
 
@@ -195,7 +195,6 @@ namespace TarkovPriceViewer.UI
                 }
             }
 
-            // Best trader section (name + price)
             if (ResultBestTraderLabelText != null)
             {
                 if (!string.IsNullOrWhiteSpace(snapshot.BestTraderName))
@@ -222,6 +221,19 @@ namespace TarkovPriceViewer.UI
                 else
                 {
                     ResultBestTraderText.Text = string.Empty;
+                }
+            }
+
+            // Trader icon using cache service
+            if (!string.IsNullOrWhiteSpace(snapshot.BestTraderName) && TraderImageBrush != null)
+            {
+                BitmapSource traderIcon = await _tarkovDevCacheService
+                    .GetTraderIconAsync(snapshot.BestTraderName, snapshot.BestTraderImageLink)
+                    .ConfigureAwait(true);
+
+                if (traderIcon != null)
+                {
+                    TraderImageBrush.ImageSource = traderIcon;
                 }
             }
 

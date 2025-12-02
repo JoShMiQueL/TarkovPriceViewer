@@ -78,6 +78,9 @@ namespace TarkovPriceViewer.Services
         name
         ... on TraderOffer {{
           minTraderLevel
+          trader {{
+            imageLink
+          }}
         }}
       }}
     }}

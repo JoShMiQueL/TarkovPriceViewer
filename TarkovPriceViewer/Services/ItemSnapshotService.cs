@@ -205,12 +205,21 @@ namespace TarkovPriceViewer.Services
 
                     string bestTraderName = null;
                     int? bestTraderPrice = null;
+                    string bestTraderImageLink = null;
 
                     if (item.sellFor != null)
                     {
                         foreach (var sf in item.sellFor)
                         {
                             if (sf == null || sf.vendor == null || string.IsNullOrEmpty(sf.vendor.name))
+                            {
+                                continue;
+                            }
+
+                            // Flea Market offers are represented here as well, but for the
+                            // trader comparison we only want NPC traders. Flea net price is
+                            // already handled via lastLowPrice - fleaFee above.
+                            if (string.Equals(sf.vendor.name, "Flea Market", StringComparison.OrdinalIgnoreCase))
                             {
                                 continue;
                             }
@@ -225,6 +234,7 @@ namespace TarkovPriceViewer.Services
                             {
                                 bestTraderPrice = price.Value;
                                 bestTraderName = sf.vendor.name;
+                                bestTraderImageLink = sf.vendor.trader?.imageLink;
                             }
                         }
                     }
@@ -289,6 +299,7 @@ namespace TarkovPriceViewer.Services
                         LocalLastUpdated = localSnapshotTime,
                         BestTraderName = bestTraderName,
                         BestTraderPrice = bestTraderPrice,
+                        BestTraderImageLink = bestTraderImageLink,
                         PreferredSellTarget = preferredTarget,
                         PreferredSellPrice = preferredPrice,
                         PricePerSlot = pricePerSlot
@@ -346,6 +357,12 @@ namespace TarkovPriceViewer.Services
         private class VendorDto
         {
             public string name { get; set; }
+            public TraderDto trader { get; set; }
+        }
+
+        private class TraderDto
+        {
+            public string imageLink { get; set; }
         }
     }
 }
