@@ -23,8 +23,6 @@ namespace TarkovPriceViewer
                     services.AddHttpClient();
 
                     services.AddSingleton<ISettingsService, SettingsService>();
-                    services.AddSingleton<ITarkovDataService, TarkovDataService>();
-                    services.AddSingleton<ITarkovTrackerService, TarkovTrackerService>();
                     services.AddSingleton<IItemRecognitionService, ItemRecognitionService>();
                     services.AddSingleton<IOcrService, OcrService>();
 

@@ -64,10 +64,7 @@ namespace TarkovPriceViewer
             try
             {
                 StatusText.Text = "Updating items from tarkov.dev...";
-                await _tarkovDataService.UpdateItemListAPIAsync().ConfigureAwait(true);
-
-                StatusText.Text = "Updating TarkovTracker progress...";
-                await _tarkovTrackerService.UpdateTarkovTrackerAPI(true).ConfigureAwait(true);
+                // Start update items...
 
                 _isInitialized = true;
                 StatusText.Text = "Ready";
