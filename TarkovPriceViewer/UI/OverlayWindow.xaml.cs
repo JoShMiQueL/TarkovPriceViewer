@@ -58,12 +58,32 @@ namespace TarkovPriceViewer.UI
             Opacity = opacity * 0.01;
         }
 
-        public async Task ShowTestItemAsync()
+        public async Task ShowTestItemAsync(string id = null, string name = null, string shortName = null)
         {
-            const string testItemName = "Salewa";
+            const string defaultTestItemName = "Salewa first aid kit";
 
-            // Find the item in the current snapshot by name
-            ItemSnapshot snapshot = _itemSnapshotService.FindByName(testItemName);
+            ItemSnapshot snapshot = null;
+
+            // Priority: id -> shortName -> name -> default test name
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                snapshot = _itemSnapshotService.GetById(id);
+            }
+
+            if (snapshot == null && !string.IsNullOrWhiteSpace(shortName))
+            {
+                snapshot = _itemSnapshotService.FindByShortName(shortName);
+            }
+
+            if (snapshot == null && !string.IsNullOrWhiteSpace(name))
+            {
+                snapshot = _itemSnapshotService.FindByName(name);
+            }
+
+            if (snapshot == null)
+            {
+                snapshot = _itemSnapshotService.FindByName(defaultTestItemName);
+            }
 
             if (snapshot == null)
             {
@@ -74,7 +94,133 @@ namespace TarkovPriceViewer.UI
             // Name
             if (ResultItemNameText != null)
             {
-                ResultItemNameText.Text = snapshot.Name;
+                // Include slots information in the title, e.g. "Salewa (3 Slots)"
+                int slots = snapshot.Slots;
+                if (slots > 1)
+                {
+                    ResultItemNameText.Text = $"{snapshot.Name} ({slots} Slots)";
+                }
+                else
+                {
+                    ResultItemNameText.Text = snapshot.Name;
+                }
+            }
+
+            int snapshotSlots = snapshot.Slots;
+
+            // Last price (total and per slot if available)
+            if (ResultLastPriceText != null)
+            {
+                if (snapshot.LastLowPrice.HasValue)
+                {
+                    string text = $"{snapshot.LastLowPrice.Value:N0}₽";
+
+                    if (snapshot.PricePerSlot.HasValue && snapshotSlots > 0)
+                    {
+                        int perSlot = (int)Math.Round(snapshot.PricePerSlot.Value, MidpointRounding.AwayFromZero);
+                        text = $"{snapshot.LastLowPrice.Value:N0}₽ ({perSlot:N0}₽)";
+                    }
+
+                    ResultLastPriceText.Text = text;
+                }
+                else
+                {
+                    ResultLastPriceText.Text = string.Empty;
+                }
+            }
+
+            // 24h average price (total and per slot if available)
+            if (ResultAvgPriceText != null)
+            {
+                if (snapshot.Avg24hPrice.HasValue && snapshot.Avg24hPrice.Value > 0)
+                {
+                    string text = $"{snapshot.Avg24hPrice.Value:N0}₽";
+
+                    if (snapshotSlots > 0)
+                    {
+                        double perSlotAvg = (double)snapshot.Avg24hPrice.Value / snapshotSlots;
+                        int perSlot = (int)Math.Round(perSlotAvg, MidpointRounding.AwayFromZero);
+                        text = $"{snapshot.Avg24hPrice.Value:N0}₽ ({perSlot:N0}₽)";
+                    }
+
+                    ResultAvgPriceText.Text = text;
+                }
+                else
+                {
+                    ResultAvgPriceText.Text = string.Empty;
+                }
+            }
+
+            // Profit Flea vs Trader (difference total; positive means Flea is better)
+            if (ResultProfitFleaVsTraderText != null)
+            {
+                if (snapshot.FleaNetPrice.HasValue && snapshot.BestTraderPrice.HasValue)
+                {
+                    int diff = snapshot.FleaNetPrice.Value - snapshot.BestTraderPrice.Value;
+                    string sign = diff > 0 ? "+" : string.Empty;
+
+                    string text = $"{sign}{diff:N0}₽";
+
+                    if (snapshotSlots > 0)
+                    {
+                        double perSlotDiff = (double)diff / snapshotSlots;
+                        int perSlot = (int)Math.Round(perSlotDiff, MidpointRounding.AwayFromZero);
+                        text = $"{text} ({sign}{perSlot:N0}₽)";
+                    }
+
+                    ResultProfitFleaVsTraderText.Text = text;
+                }
+                else
+                {
+                    ResultProfitFleaVsTraderText.Text = string.Empty;
+                }
+            }
+
+            // Preferred sell target (Flea / trader name / unknown)
+            if (ResultSellToText != null)
+            {
+                if (!string.IsNullOrWhiteSpace(snapshot.PreferredSellTarget))
+                {
+                    ResultSellToText.Text = snapshot.PreferredSellTarget;
+                }
+                else if (!string.IsNullOrWhiteSpace(snapshot.BestTraderName))
+                {
+                    ResultSellToText.Text = snapshot.BestTraderName;
+                }
+                else
+                {
+                    ResultSellToText.Text = string.Empty;
+                }
+            }
+
+            // Best trader section (name + price)
+            if (ResultBestTraderLabelText != null)
+            {
+                if (!string.IsNullOrWhiteSpace(snapshot.BestTraderName))
+                {
+                    ResultBestTraderLabelText.Text = snapshot.BestTraderName;
+                }
+            }
+
+            if (ResultBestTraderText != null)
+            {
+                if (snapshot.BestTraderPrice.HasValue)
+                {
+                    string text = $"{snapshot.BestTraderPrice.Value:N0}₽";
+
+                    if (snapshotSlots > 0)
+                    {
+                        double perSlotTrader = (double)snapshot.BestTraderPrice.Value / snapshotSlots;
+                        int perSlot = (int)Math.Round(perSlotTrader, MidpointRounding.AwayFromZero);
+                        text = $"{text} ({perSlot:N0}₽)";
+                    }
+
+                    ResultBestTraderText.Text = text;
+                }
+                else
+                {
+                    ResultBestTraderText.Text = string.Empty;
+                }
             }
 
             // Icon using the new icon cache service
